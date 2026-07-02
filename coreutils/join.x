@@ -107,22 +107,22 @@ fn main(): i32 {
     let mut ai: i32 = 1
     while ai < argc() {
         let a: String = argv(ai)
-        if str_eq(a, "-1") {
+        if a == "-1" {
             if ai + 1 < argc() { jf1 = str_to_int(argv(ai + 1)) }
             ai += 2
-        } else if str_eq(a, "-2") {
+        } else if a == "-2" {
             if ai + 1 < argc() { jf2 = str_to_int(argv(ai + 1)) }
             ai += 2
-        } else if str_eq(a, "-t") {
+        } else if a == "-t" {
             if ai + 1 < argc() {
                 sep_char = str_char_at(argv(ai + 1), 0)
                 use_ws = 0
             }
             ai += 2
-        } else if str_eq(a, "-a") {
+        } else if a == "-a" {
             if ai + 1 < argc() {
-                if str_eq(argv(ai + 1), "1") { a1 = 1 }
-                if str_eq(argv(ai + 1), "2") { a2 = 1 }
+                if argv(ai + 1) == "1" { a1 = 1 }
+                if argv(ai + 1) == "2" { a2 = 1 }
             }
             ai += 2
         } else {
@@ -154,18 +154,18 @@ fn main(): i32 {
         let f2: Vec<String> = split_fields(lines2[j], sep_char, use_ws)
         let k1: String = field_at(f1, jf1)
         let k2: String = field_at(f2, jf2)
-        if str_eq(k1, k2) {
+        if k1 == k2 {
             // Equal keys: GNU join is a cross-product over the consecutive
             // runs of equal keys in each file (1-to-many / many-to-many).
             let mut i_end: i32 = i
             while i_end < n1 {
                 let g: Vec<String> = split_fields(lines1[i_end], sep_char, use_ws)
-                if str_eq(field_at(g, jf1), k1) { i_end += 1 } else { break }
+                if field_at(g, jf1) == k1 { i_end += 1 } else { break }
             }
             let mut j_end: i32 = j
             while j_end < n2 {
                 let g: Vec<String> = split_fields(lines2[j_end], sep_char, use_ws)
-                if str_eq(field_at(g, jf2), k2) { j_end += 1 } else { break }
+                if field_at(g, jf2) == k2 { j_end += 1 } else { break }
             }
             let mut gi: i32 = i
             while gi < i_end {
