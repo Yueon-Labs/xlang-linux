@@ -138,7 +138,11 @@ fn main(): i32 {
         print_str("usage: join [-1 F1] [-2 F2] [-t SEP] [-a 1|2] file1 file2")
         return 1
     }
-    let sep: String = " "
+    // Output separator: the -t char, or a space for the default whitespace mode.
+    let mut sep: String = " "
+    if use_ws == 0 {
+        sep = chr(sep_char)
+    }
     let lines1: Vec<String> = split_lines(read_file(fa))
     let lines2: Vec<String> = split_lines(read_file(fb))
     let n1: i32 = vec_len(lines1)
@@ -151,9 +155,31 @@ fn main(): i32 {
         let k1: String = field_at(f1, jf1)
         let k2: String = field_at(f2, jf2)
         if str_eq(k1, k2) {
-            emit_join(k1, f1, jf1, f2, jf2, sep)
-            i += 1
-            j += 1
+            // Equal keys: GNU join is a cross-product over the consecutive
+            // runs of equal keys in each file (1-to-many / many-to-many).
+            let mut i_end: i32 = i
+            while i_end < n1 {
+                let g: Vec<String> = split_fields(lines1[i_end], sep_char, use_ws)
+                if str_eq(field_at(g, jf1), k1) { i_end += 1 } else { break }
+            }
+            let mut j_end: i32 = j
+            while j_end < n2 {
+                let g: Vec<String> = split_fields(lines2[j_end], sep_char, use_ws)
+                if str_eq(field_at(g, jf2), k2) { j_end += 1 } else { break }
+            }
+            let mut gi: i32 = i
+            while gi < i_end {
+                let f1g: Vec<String> = split_fields(lines1[gi], sep_char, use_ws)
+                let mut gj: i32 = j
+                while gj < j_end {
+                    let f2g: Vec<String> = split_fields(lines2[gj], sep_char, use_ws)
+                    emit_join(k1, f1g, jf1, f2g, jf2, sep)
+                    gj += 1
+                }
+                gi += 1
+            }
+            i = i_end
+            j = j_end
         } else if k1 < k2 {
             if a1 == 1 {
                 print_raw(lines1[i])
