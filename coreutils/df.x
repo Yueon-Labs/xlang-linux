@@ -39,17 +39,17 @@ fn main(): i32 {
                     if sp3 >= 0 {
                         let fstype: String = str_slice(rest2, 0, sp3)
                         if fstype == "ext4" || fstype == "ext3" || fstype == "ext2" || fstype == "xfs" || fstype == "btrfs" || fstype == "tmpfs" || fstype == "vfat" || fstype == "ntfs" {
-                            let bsize: i64 = int_to_i64(stat_field(mp, 11))
-                            let blocks: i64 = int_to_i64(stat_field(mp, 12))
-                            let bfree: i64 = int_to_i64(stat_field(mp, 13))
-                            if bsize > 0 && blocks > 0 {
+                            let bsize_i: i32 = stat_field(mp, 11)
+                            let blocks_i: i32 = stat_field(mp, 12)
+                            let bfree_i: i32 = stat_field(mp, 13)
+                            if bsize_i > 0 && blocks_i > 0 {
+                                let bsize: i64 = int_to_i64(bsize_i)
+                                let blocks: i64 = int_to_i64(blocks_i)
+                                let bfree: i64 = int_to_i64(bfree_i)
                                 let total: i64 = bsize * blocks
                                 let avail: i64 = bsize * bfree
                                 let used: i64 = total - avail
-                                let mut pct: i32 = 0
-                                if total > 0 {
-                                    pct = int_of_f64(int_to_f64(used) / int_to_f64(total) * 100.0)
-                                }
+                                let pct: i32 = (blocks_i - bfree_i) * 100 / blocks_i
                                 print_raw(format_size(total))
                                 print_raw("  ")
                                 print_raw(format_size(used))
