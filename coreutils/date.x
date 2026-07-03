@@ -44,12 +44,60 @@ fn unit_seconds(word: String): i32 {
     return 0
 }
 
+// Howard Hinnant's days_from_civil: (y, m, d) → days since 1970-01-01, no loops,
+// leap-year correct. Used to parse ISO dates ("2026-07-03") to a Unix epoch
+// without strptime (which is POSIX-only and would break the MSVC preamble).
+fn days_from_civil(y0: i32, m: i32, d: i32): i32 {
+    let mut y: i32 = y0
+    if m <= 2 { y = y - 1 }
+    let mut era: i32 = y / 400
+    if y < 0 { era = (y - 399) / 400 }
+    let yoe: i32 = y - era * 400
+    let mut mp: i32 = m - 3
+    if m <= 2 { mp = m + 9 }
+    let doy: i32 = (153 * mp + 2) / 5 + d - 1
+    let doe: i32 = yoe * 365 + yoe / 4 - yoe / 100 + doy
+    return era * 146097 + doe - 719468
+}
+
+// Is s shaped like an ISO date "YYYY-MM-DD"? (positions 4 and 7 are '-'.)
+fn is_iso_date(s: String): bool {
+    if str_len(s) < 10 { return false }
+    if str_char_at(s, 4) != 45 { return false }
+    if str_char_at(s, 7) != 45 { return false }
+    return true
+}
+
+// Parse "YYYY-MM-DD" or "YYYY-MM-DD[ T]HH:MM:SS" → Unix epoch (UTC). Caller
+// must gate on is_iso_date(). Time defaults to 00:00:00 if absent.
+fn parse_iso(val: String): i32 {
+    let y: i32 = str_to_int(str_slice(val, 0, 4))
+    let mo: i32 = str_to_int(str_slice(val, 5, 7))
+    let d: i32 = str_to_int(str_slice(val, 8, 10))
+    let mut h: i32 = 0
+    let mut mi: i32 = 0
+    let mut se: i32 = 0
+    if str_len(val) >= 19 {
+        let sep: i32 = str_char_at(val, 10)
+        if sep == 32 || sep == 84 || sep == 116 {
+            if str_char_at(val, 13) == 58 && str_char_at(val, 16) == 58 {
+                h = str_to_int(str_slice(val, 11, 13))
+                mi = str_to_int(str_slice(val, 14, 16))
+                se = str_to_int(str_slice(val, 17, 19))
+            }
+        }
+    }
+    return days_from_civil(y, mo, d) * 86400 + h * 3600 + mi * 60 + se
+}
+
 // Resolve a -d / --date value to a Unix epoch. Supported forms:
 //   @EPOCH                 absolute Unix timestamp
 //   now | today            current time
 //   yesterday | tomorrow   ±1 day
 //   "N unit [ago]"         N is a leading integer, unit in
 //                          {second,minute,hour,day,week}[s]; "ago" negates.
+//   "YYYY-MM-DD"            absolute date (UTC), with optional
+//   "YYYY-MM-DD HH:MM:SS"   " HH:MM:SS" / "THH:MM:SS" time component.
 // Returns DATE_BAD (a sentinel no real result hits) if unrecognized.
 fn resolve_date(val: String): i32 {
     let bad: i32 = -2000000000
@@ -76,6 +124,8 @@ fn resolve_date(val: String): i32 {
             return e
         }
     }
+    // ISO date "YYYY-MM-DD[ T]HH:MM:SS" (absolute, UTC).
+    if is_iso_date(val) { return parse_iso(val) }
     return bad
 }
 
