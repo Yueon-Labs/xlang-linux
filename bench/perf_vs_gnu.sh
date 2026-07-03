@@ -17,7 +17,7 @@ mkdir -p build bin
 
 # Build the xlang coreutils we benchmark (skip any that fail to build — some
 # use Linux-only directory/network builtins and won't link on Windows).
-TOOLS="cat tac rev head tail wc sort uniq tr cut fold nl grep base64 base32 md5sum sha256sum expand unexpand paste comm cate showall"
+TOOLS="cat tac rev head tail wc sort uniq tr cut fold nl grep base64 base32 md5sum sha256sum expand unexpand paste comm cate showall seq"
 for t in $TOOLS; do
     if [ -f "coreutils/$t.x" ]; then
         "$XLANGC" c "coreutils/$t.x" -o "build/$t.c" >/dev/null 2>&1
@@ -100,5 +100,7 @@ race "expand"       build/perf_tab.txt    "$B/expand"         "expand"
 race "unexpand -a"  build/perf_in.txt     "$B/unexpand -a"    "unexpand -a"
 race "cate (cat -E)"   build/perf_in.txt  "$B/cate"           "cat -E"
 race "showall (cat -A)" build/perf_in.txt "$B/showall"        "cat -A"
+# seq generates its own output (ignores stdin); feed input only for the harness.
+race "seq 1 200000"   build/perf_in.txt "$B/seq 1 200000"    "seq 1 200000"
 echo "=== done ==="
 rm -f build/perf_in.txt build/perf_sorted.txt build/perf_tab.txt build/perf_blob.txt
