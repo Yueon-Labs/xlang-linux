@@ -45,6 +45,35 @@ fn count(text: String): Counts {
     return Counts { lines: lines, words: words, bytes: bytes, maxlen: maxlen }
 }
 
+// Fast newline count for the -l-only case: str_find_from scans for '\n' at
+// C/memchr speed (bulk), vs the per-char str_char_at loop in count() which the
+// Linux scoreboard flagged as ~9x slower than GNU wc -l. Only correct when no
+// other count (-w/-c/-L) is needed.
+fn count_lines(text: String): i32 {
+    let mut lines: i32 = 0
+    let mut start: i32 = 0
+    while true {
+        let pos: i32 = str_find_from(text, "\n", start)
+        if pos < 0 { break }
+        lines = lines + 1
+        start = pos + 1
+    }
+    return lines
+}
+
+fn only_lines(want_l: i32, want_w: i32, want_c: i32, want_L: i32): i32 {
+    if want_l == 1 {
+        if want_w == 0 {
+            if want_c == 0 {
+                if want_L == 0 {
+                    return 1
+                }
+            }
+        }
+    }
+    return 0
+}
+
 // Print the requested counts (space-separated), followed by name if show_name.
 fn print_counts(cnt: Counts, name: String, want_l: i32, want_w: i32, want_c: i32, want_L: i32, show_name: i32): i32 {
     let mut first: i32 = 1
@@ -124,7 +153,12 @@ fn main(): i32 {
     let nf: i32 = vec_len(files)
     if nf == 0 {
         let s: String = read_stdin()
-        let cnt: Counts = count(s)
+        let mut cnt: Counts = Counts { lines: 0, words: 0, bytes: 0, maxlen: 0 }
+        if only_lines(want_l, want_w, want_c, want_L) == 1 {
+            cnt.lines = count_lines(s)
+        } else {
+            cnt = count(s)
+        }
         print_counts(cnt, "", want_l, want_w, want_c, want_L, 0)
         return 0
     }
@@ -134,11 +168,17 @@ fn main(): i32 {
     let mut twords: i32 = 0
     let mut tbytes: i32 = 0
     let mut tmax: i32 = 0
+    let fast_l: i32 = only_lines(want_l, want_w, want_c, want_L)
     let mut p: i32 = 0
     while p < nf {
         let f: String = files[p]
         let s: String = read_file(f)
-        let cnt: Counts = count(s)
+        let mut cnt: Counts = Counts { lines: 0, words: 0, bytes: 0, maxlen: 0 }
+        if fast_l == 1 {
+            cnt.lines = count_lines(s)
+        } else {
+            cnt = count(s)
+        }
         print_counts(cnt, f, want_l, want_w, want_c, want_L, 1)
         tlines = tlines + cnt.lines
         twords = twords + cnt.words
