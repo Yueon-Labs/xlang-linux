@@ -89,6 +89,20 @@ if command -v date >/dev/null 2>&1; then
 fi
 rm -f "$TF"
 
+echo "== -d relative keywords (vs GNU, day granularity — robust vs second boundary)"
+if command -v date >/dev/null 2>&1; then
+    for spec in "today" "now" "yesterday" "tomorrow" "1 day" "2 days" "1 day ago" \
+                "7 days ago" "1 week" "1 week ago" "5 hours" "10 minutes" "3600 seconds"; do
+        a=$("$D" -d "$spec" +%Y-%m-%d)
+        b=$(date -d "$spec" +%Y-%m-%d 2>/dev/null)
+        if [ -n "$b" ]; then ck "vs GNU -d '$spec'" "$b" "$a"; else echo "  skip -d '$spec' (GNU rejected)"; fi
+    done
+    # internal consistency: '1 day ago' must equal 'yesterday' (same epoch).
+    a=$("$D" -d '1 day ago' +%Y-%m-%d)
+    b=$("$D" -d yesterday +%Y-%m-%d)
+    ck "'1 day ago' == yesterday (internal)" "$b" "$a"
+fi
+
 echo
 
 echo "RESULT: pass=$PASS fail=$FAIL"

@@ -20,15 +20,63 @@ fn iso_format(precision: String): String {
     return "%Y-%m-%d"
 }
 
-// Accept a -d / --date value. Only the "@EPOCH" form is supported; anything
-// else (relative dates like "yesterday") is silently ignored. Returns the
-// parsed epoch via the out param and 1 if it was an @-form, else 0.
-fn parse_date_value(val: String): i32 {
-    // Returns the epoch if val is "@N", or -1 if not an @-form.
+// Number of leading ASCII-digit characters in s (0 if none).
+fn leading_digit_count(s: String): i32 {
+    let n: i32 = str_len(s)
+    let mut i: i32 = 0
+    while i < n {
+        let c: i32 = str_char_at(s, i)
+        if c < 48 || c > 57 { break }
+        i += 1
+    }
+    return i
+}
+
+// Seconds-per-unit for relative dates. Only EXACT multiples of a second are
+// listed (so results match GNU byte-for-byte). month/year are deliberately
+// omitted — they need calendar arithmetic (variable length) and would diverge.
+fn unit_seconds(word: String): i32 {
+    if str_starts_with(word, "week") { return 604800 }
+    if str_starts_with(word, "day") { return 86400 }
+    if str_starts_with(word, "hour") { return 3600 }
+    if str_starts_with(word, "minute") { return 60 }
+    if str_starts_with(word, "second") { return 1 }
+    return 0
+}
+
+// Resolve a -d / --date value to a Unix epoch. Supported forms:
+//   @EPOCH                 absolute Unix timestamp
+//   now | today            current time
+//   yesterday | tomorrow   ±1 day
+//   "N unit [ago]"         N is a leading integer, unit in
+//                          {second,minute,hour,day,week}[s]; "ago" negates.
+// Returns DATE_BAD (a sentinel no real result hits) if unrecognized.
+fn resolve_date(val: String): i32 {
+    let bad: i32 = -2000000000
     if str_starts_with(val, "@") {
         return str_to_int(str_slice(val, 1, str_len(val)))
     }
-    return -1
+    let now: i32 = time_now()
+    if val == "now" || val == "today" { return now }
+    if val == "yesterday" { return now - 86400 }
+    if val == "tomorrow" { return now + 86400 }
+    let dc: i32 = leading_digit_count(val)
+    if dc > 0 {
+        let amt: i32 = str_to_int(str_slice(val, 0, dc))
+        let mut rest: String = str_slice(val, dc, str_len(val))
+        let mut ri: i32 = 0
+        while ri < str_len(rest) {
+            if str_char_at(rest, ri) == 32 { ri += 1 } else { break }
+        }
+        rest = str_slice(rest, ri, str_len(rest))
+        let secs: i32 = unit_seconds(rest)
+        if secs > 0 {
+            let mut e: i32 = now + amt * secs
+            if str_contains(rest, "ago") { e = now - amt * secs }
+            return e
+        }
+    }
+    return bad
 }
 
 fn main(): i32 {
@@ -61,8 +109,8 @@ fn main(): i32 {
         } else if a == "-d" || a == "--date" {
             if ai + 1 < argc() {
                 let val: String = argv(ai + 1)
-                let e: i32 = parse_date_value(val)
-                if e != -1 {
+                let e: i32 = resolve_date(val)
+                if e != -2000000000 {
                     epoch = e
                     have_epoch = 1
                 }
@@ -70,8 +118,8 @@ fn main(): i32 {
             }
         } else if str_starts_with(a, "--date=") {
             let val: String = str_slice(a, 7, str_len(a))
-            let e: i32 = parse_date_value(val)
-            if e != -1 {
+            let e: i32 = resolve_date(val)
+            if e != -2000000000 {
                 epoch = e
                 have_epoch = 1
             }
