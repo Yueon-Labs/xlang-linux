@@ -45,8 +45,10 @@ fn main(): i32 {
         print_str("usage: comm [-123] <file1> <file2>")
         return 1
     }
-    let a: Vec<String> = str_split(read_file(fa), "\n")
-    let b: Vec<String> = str_split(read_file(fb), "\n")
+    let ra: String = str_trim(read_file(fa))
+    let rb: String = str_trim(read_file(fb))
+    let a: Vec<String> = str_split(ra, "\n")
+    let b: Vec<String> = str_split(rb, "\n")
     let an: i32 = vec_len(a)
     let bn: i32 = vec_len(b)
     let mut i: i32 = 0
