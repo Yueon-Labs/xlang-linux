@@ -11,16 +11,17 @@ fn main(): i32 {
     let n: i32 = str_len(s)
     let lines: Vec<String> = vec_new()
     let mut start: i32 = 0
-    let mut i: i32 = 0
-    while i < n {
-        if str_char_at(s, i) == 10 {
-            lines.push(str_slice(s, start, i))
-            start = i + 1
+    // Bulk newline scan via str_find_from (strchr — fast on all platforms).
+    while true {
+        let nl: i32 = str_find_from(s, "\n", start)
+        if nl < 0 {
+            if start < n {
+                lines.push(str_slice(s, start, n))
+            }
+            break
         }
-        i += 1
-    }
-    if start < n {
-        lines.push(str_slice(s, start, n))
+        lines.push(str_slice(s, start, nl))
+        start = nl + 1
     }
     let count: i32 = vec_len(lines)
     // Buffer output (one write) — per-line print_raw is N syscalls.
