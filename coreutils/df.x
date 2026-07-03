@@ -28,23 +28,36 @@ fn main(): i32 {
         if mounts[i] == '\n' {
             let line: String = str_slice(mounts, start, i)
             start = i + 1
-            // Parse: device mountpoint fstype ...
             let sp1: i32 = str_find(line, " ")
             if sp1 >= 0 {
                 let rest: String = str_slice(line, sp1 + 1, str_len(line))
                 let sp2: i32 = str_find(rest, " ")
                 if sp2 >= 0 {
                     let mp: String = str_slice(rest, 0, sp2)
-                    // Only show real filesystems (skip proc, sysfs, etc.)
                     let rest2: String = str_slice(rest, sp2 + 1, str_len(rest))
                     let sp3: i32 = str_find(rest2, " ")
                     if sp3 >= 0 {
                         let fstype: String = str_slice(rest2, 0, sp3)
                         if fstype == "ext4" || fstype == "ext3" || fstype == "ext2" || fstype == "xfs" || fstype == "btrfs" || fstype == "tmpfs" || fstype == "vfat" || fstype == "ntfs" {
-                            let info: String = statvfs_info(mp)
-                            if str_len(info) > 0 {
-                                print_str(info)
-                                print_str("  ")
+                            let bsize: i64 = int_to_i64(stat_field(mp, 11))
+                            let blocks: i64 = int_to_i64(stat_field(mp, 12))
+                            let bfree: i64 = int_to_i64(stat_field(mp, 13))
+                            if bsize > 0 && blocks > 0 {
+                                let total: i64 = bsize * blocks
+                                let avail: i64 = bsize * bfree
+                                let used: i64 = total - avail
+                                let pct: i32 = 0
+                                if total > 0 {
+                                    pct = int_of_f64(int_to_f64(used) / int_to_f64(total) * 100.0)
+                                }
+                                print_raw(format_size(total))
+                                print_raw("  ")
+                                print_raw(format_size(used))
+                                print_raw("  ")
+                                print_raw(format_size(avail))
+                                print_raw("  ")
+                                print_raw(int_to_str(pct))
+                                print_raw("%  ")
                                 print_str(mp)
                                 print_str("\n")
                                 seen += 1
