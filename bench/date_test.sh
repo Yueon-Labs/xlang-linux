@@ -59,6 +59,37 @@ else
     echo "  skip GNU cross-check (GNU date absent)"
 fi
 
+echo "== -d @EPOCH (fully deterministic — the Unix epoch)"
+# epoch 0 = 1970-01-01 00:00:00 UTC, regardless of wall-clock time.
+ck "-u -d @0 +%%Y-%%m-%%dT%%H:%%M:%%S" "1970-01-01T00:00:00" "$("$D" -u -d @0 "+%Y-%m-%dT%H:%M:%S")"
+ck "-u -d @0 +%%Y"                     "1970"                 "$("$D" -u -d @0 +%Y)"
+ck "-u -d @0 +%%Z"                     "UTC"                  "$("$D" -u -d @0 +%Z)"
+ck "-u -d @0 +%%w (Thursday=4)"        "4"                    "$("$D" -u -d @0 +%w)"
+# 1609459200 = 2021-01-01 00:00:00 UTC.
+ck "-u -d @1609459200 +%%Y"            "2021"                 "$("$D" -u -d @1609459200 +%Y)"
+ck "-u -d @1609459200 +%%Y-%%m-%%d"   "2021-01-01"           "$("$D" -u -d @1609459200 "+%Y-%m-%d")"
+ck "--date=@951782400 (2000-02-29 leap)" "2000-02-29"         "$("$D" -u --date=@951782400 "+%Y-%m-%d")"
+
+echo "== -d @0 vs GNU (default ctime format, deterministic)"
+if command -v date >/dev/null 2>&1; then
+    a=$("$D" -u -d @0)
+    b=$(date -u -d @0 2>/dev/null || date -u -d "@0")
+    ck "vs GNU -u -d @0 (default)" "$b" "$a"
+fi
+
+echo "== -r FILE (file mtime)"
+TF=$(mktemp)
+printf 'hello\n' > "$TF"
+if command -v date >/dev/null 2>&1; then
+    for fmt in "+%Y-%m-%d" "+%Y-%m-%d %H:%M:%S"; do
+        a=$("$D" -r "$TF" "$fmt")
+        b=$(date -r "$TF" "$fmt" 2>/dev/null)
+        if [ -n "$b" ]; then ck "vs GNU -r $fmt" "$b" "$a"; else echo "  skip -r $fmt (GNU date -r absent)"; fi
+    done
+fi
+rm -f "$TF"
+
 echo
+
 echo "RESULT: pass=$PASS fail=$FAIL"
 [ "$FAIL" = 0 ]
