@@ -26,7 +26,7 @@ fn main(): i32 {
         return 1
     }
     // Flush stdout, then exec the command.
-    flush_stdout()
+    print_raw("")
     sb_new()
     let mut k: i32 = 0
     while k < cmd_parts.len() {
