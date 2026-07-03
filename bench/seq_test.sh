@@ -22,6 +22,9 @@ cmp_gnu "int 5"           5
 cmp_gnu "int 2 5"         2 5
 cmp_gnu "int step"        1 2 10
 cmp_gnu "int countdown"   10 -2 0
+cmp_gnu "int -w 1 10"     -w 1 10
+cmp_gnu "int -w 8 12"     -w 8 12
+cmp_gnu "int -w 98 103"   -w 98 103
 # Float cases: GNU prints "1.0" vs xlang "1" (%g strips trailing .0). Test
 # structurally instead.
 echo "  float 1 0.5 3 (structural)"
