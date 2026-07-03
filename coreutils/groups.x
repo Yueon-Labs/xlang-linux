@@ -94,7 +94,7 @@ fn main(): i32 {
         let gparts: Vec<String> = split_colon(glines[gi])
         if vec_len(gparts) >= 3 {
             let g_gid: i32 = parse_id(gparts[2])
-            let members: String = ""
+            let mut members: String = ""
             if vec_len(gparts) >= 4 {
                 members = gparts[3]
             }
