@@ -103,6 +103,22 @@ if command -v date >/dev/null 2>&1; then
     ck "'1 day ago' == yesterday (internal)" "$b" "$a"
 fi
 
+echo "== -d absolute ISO date (vs GNU, fully deterministic in UTC)"
+# Round-trip + weekday anchors (computed by days_from_civil, leap-year correct).
+ck "-u -d 1970-01-01 +%%Y-%%m-%%dT%%H:%%M:%%S" "1970-01-01T00:00:00" "$("$D" -u -d 1970-01-01 "+%Y-%m-%dT%H:%M:%S")"
+ck "-u -d 1970-01-01 +%%a (Thu)"                "Thu"                  "$("$D" -u -d 1970-01-01 +%a)"
+ck "-u -d 2000-02-29 (leap) +%%Y-%%m-%%d"       "2000-02-29"           "$("$D" -u -d 2000-02-29 +%Y-%m-%d)"
+ck "-u -d 2024-02-29 (leap) +%%a (Thu)"          "Thu"                  "$("$D" -u -d 2024-02-29 +%a)"
+ck "-u -d 1999-12-31 +%%a (Fri)"                 "Fri"                  "$("$D" -u -d 1999-12-31 +%a)"
+ck "-u -d '2026-07-03 12:30:45' +%%H:%%M:%%S"   "12:30:45"             "$("$D" -u -d '2026-07-03 12:30:45' +%H:%M:%S)"
+if command -v date >/dev/null 2>&1; then
+    for spec in "2026-07-03" "2000-02-29" "2024-02-29" "1999-12-31" "2030-06-15"; do
+        a=$("$D" -u -d "$spec" "+%Y-%m-%d %a")
+        b=$(date -u -d "$spec" "+%Y-%m-%d %a" 2>/dev/null)
+        if [ -n "$b" ]; then ck "vs GNU -u -d $spec" "$b" "$a"; fi
+    done
+fi
+
 echo
 
 echo "RESULT: pass=$PASS fail=$FAIL"
