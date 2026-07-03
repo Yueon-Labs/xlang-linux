@@ -27,6 +27,21 @@ cmp_gnu "delete line 2"      '2d'
 cmp_gnu "print only line 2"  -n '2p'
 cmp_gnu "addr range sub"     '1,2s/e/3/g'
 cmp_gnu "literal ; in repl"  's/a/A;B/'
+cmp_gnu "s with & (matched)" 's/banana/[&]/'
+cmp_gnu "s with & global"    's/a/[&]/g'
+
+echo "== sed -i (in-place edit)"
+# -i writes a temp file and renames over the original (POSIX rename overwrites;
+# the Windows-native binary can't overwrite, so this is a Linux-CI test).
+TF=$(mktemp)
+printf 'alpha\nbeta\ngamma\n' > "$TF"
+"$S" -i 's/a/X/g' "$TF"
+xi=$(cat "$TF")
+printf 'alpha\nbeta\ngamma\n' > "$TF"
+sed -i 's/a/X/g' "$TF"
+gi=$(cat "$TF")
+if [ "$xi" = "$gi" ]; then echo "  ok   sed -i == GNU sed -i"; PASS=$((PASS+1)); else echo "  FAIL sed -i: x=[$xi] g=[$gi]"; FAIL=$((FAIL+1)); fi
+rm -f "$TF"
 
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
