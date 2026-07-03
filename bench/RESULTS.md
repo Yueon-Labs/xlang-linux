@@ -30,7 +30,7 @@ xlang's merge sort + `strcmp` beats GNU sort (GNU does locale collation);
 
 | tool | xlang | GNU | ratio | note |
 |---|---|---|---|---|
-| tac | 0.28s | 0.06s | 4.67× | per-line reverse + I/O (read-all + reverse) |
+| ~~tac~~ | ~~0.28s~~ | 0.04s | ~~4.67×~~ → **2.75×** | **fixed**: streams backwards via `sb_push_slice` (was Vec<String> + N mallocs); byte-identical to GNU |
 | showall (cat -A) | 0.19s | 0.07s | 2.71× | bulk `cat_show` (residual gap) |
 | cut -d- -f2 | 0.55s | 0.21s | 2.62× | per-field slice |
 | tr a-z A-Z | 0.15s | 0.06s | 2.50× | bulk `str_translate` (residual gap) |
@@ -41,11 +41,12 @@ xlang's merge sort + `strcmp` beats GNU sort (GNU does locale collation);
 | uniq -c | 0.54s | 0.30s | 1.80× | |
 | nl | 0.59s | 0.41s | 1.44× | |
 
-The biggest remaining gap is **tac** (4.67×) — it reads all lines into a Vec
-and reverses (per-element malloc), where GNU tac streams. The 2–2.7× cluster
-(`tr`/`cut`/`uniq`/`cate`/`showall`/`wc -l`) is dominated by **per-element /
-per-line processing** that the bulk-C builtins reduced but didn't fully close
-(GNU also benefits from highly-tuned inner loops). Sub-resolution tools
+The biggest remaining gap is now the **2.7× cluster** — `showall`/`cut`/`tr`/
+`uniq`/`wc -l` — dominated by **per-element / per-line processing** that the
+bulk-C builtins reduced but didn't fully close (GNU also benefits from
+highly-tuned inner loops). `tac` was 4.67× (read-all into `Vec<String>` + N
+mallocs) and is now **2.75×** after streaming backwards via `sb_push_slice`
+(xlang#94 + xlang-linux#115), byte-identical to GNU. Sub-resolution tools
 (`head`/`tail`/`grep`/`seq`/`base64`/`md5sum` — both sides < 0.01s) are omitted.
 
 ## How to reproduce
