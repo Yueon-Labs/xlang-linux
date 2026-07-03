@@ -46,7 +46,7 @@ fn main(): i32 {
                                 let total: i64 = bsize * blocks
                                 let avail: i64 = bsize * bfree
                                 let used: i64 = total - avail
-                                let pct: i32 = 0
+                                let mut pct: i32 = 0
                                 if total > 0 {
                                     pct = int_of_f64(int_to_f64(used) / int_to_f64(total) * 100.0)
                                 }
