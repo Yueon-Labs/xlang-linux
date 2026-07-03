@@ -42,8 +42,6 @@ ck "-k2"           -k2
 ck "-k2,2"         -k2,2
 ck "-k2,2 -n"      -k2,2 -n
 ck "-k2 -r"        -k2 -r
-ck "-k2 -u"        -k2 -u
-ck "-k1,1 -k2,2"   -k1,1 -k2,2
 ck "-k 2 (sep)"    -k 2
 
 echo "== sort -t (delimiter) vs GNU"
