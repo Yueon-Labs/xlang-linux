@@ -75,7 +75,7 @@ fn main(): i32 {
 
     let sock: i32 = tcp_connect(u.host, u.port)
     if sock < 0 {
-        print_str("httpget: connection failed")
+        eprint_str("httpget: connection failed")
         return 1
     }
 

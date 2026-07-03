@@ -181,9 +181,9 @@ fn main(): i32 {
                     epoch = m
                     have_epoch = 1
                 } else {
-                    print_str("date: cannot stat '")
-                    print_str(f)
-                    print_str("'\n")
+                    eprint_str("date: cannot stat '")
+                    eprint_str(f)
+                    eprint_str("'\n")
                     return 1
                 }
                 step = 2
@@ -195,9 +195,9 @@ fn main(): i32 {
                 epoch = m
                 have_epoch = 1
             } else {
-                print_str("date: cannot stat '")
-                print_str(f)
-                print_str("'\n")
+                eprint_str("date: cannot stat '")
+                eprint_str(f)
+                eprint_str("'\n")
                 return 1
             }
         } else if a == "--version" {

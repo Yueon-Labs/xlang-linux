@@ -109,9 +109,9 @@ fn main(): i32 {
         let path: String = files[fi]
         let rc: i32 = chown_file(path, uid, gid)
         if rc != 0 {
-            print_str("chown: cannot access '")
-            print_str(path)
-            print_str("'\n")
+            eprint_str("chown: cannot access '")
+            eprint_str(path)
+            eprint_str("'\n")
             fail = 1
         }
         fi += 1

@@ -11,9 +11,9 @@ fn main(): i32 {
     let newroot: String = argv(1)
     let rc: i32 = chroot_call(newroot)
     if rc != 0 {
-        print_str("chroot: cannot change root directory to '")
-        print_str(newroot)
-        print_str("'\n")
+        eprint_str("chroot: cannot change root directory to '")
+        eprint_str(newroot)
+        eprint_str("'\n")
         return 1
     }
     // chdir to the new root

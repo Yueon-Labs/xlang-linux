@@ -9,9 +9,9 @@ fn main(): i32 {
     }
     let path: String = argv(1)
     if remove_file(path) != 0 {
-        print_str("unlink: cannot remove '")
-        print_str(path)
-        print_str("'\n")
+        eprint_str("unlink: cannot remove '")
+        eprint_str(path)
+        eprint_str("'\n")
         return 1
     }
     return 0

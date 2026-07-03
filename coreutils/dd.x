@@ -44,7 +44,7 @@ fn main(): i32 {
     if str_len(infile) > 0 {
         ifd = open_read(infile)
         if ifd < 0 {
-            print_str("dd: cannot open input")
+            eprint_str("dd: cannot open input")
             return 1
         }
     }
@@ -53,7 +53,7 @@ fn main(): i32 {
     if str_len(outfile) > 0 {
         ofd = open_write(outfile)
         if ofd < 0 {
-            print_str("dd: cannot open output")
+            eprint_str("dd: cannot open output")
             return 1
         }
     }
