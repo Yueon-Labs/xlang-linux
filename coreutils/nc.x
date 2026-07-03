@@ -70,7 +70,7 @@ fn main(): i32 {
     let port: i32 = str_to_int(argv(2))
     let sock: i32 = tcp_connect(host, port)
     if sock < 0 {
-        print_str("nc: connection failed")
+        eprint_str("nc: connection failed")
         return 1
     }
     relay(sock)

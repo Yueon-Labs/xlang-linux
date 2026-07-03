@@ -22,13 +22,13 @@ fn basename(p: String): String {
 fn copy_file(src: String, dst: String): i32 {
     let ifd: i32 = open_read(src)
     if ifd < 0 {
-        print_str("cp: cannot open source")
+        eprint_str("cp: cannot open source")
         return 1
     }
     let ofd: i32 = open_write(dst)
     if ofd < 0 {
         close_fd(ifd)
-        print_str("cp: cannot open destination")
+        eprint_str("cp: cannot open destination")
         return 1
     }
     while true {

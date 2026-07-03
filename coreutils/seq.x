@@ -55,7 +55,7 @@ fn main(): i32 {
             }
         }
         if step == 0.0 {
-            print_str("seq: step cannot be zero")
+            eprint_str("seq: step cannot be zero")
             return 1
         }
         let mut i: f64 = first
@@ -104,7 +104,7 @@ fn main(): i32 {
             }
         }
         if step == 0 {
-            print_str("seq: step cannot be zero")
+            eprint_str("seq: step cannot be zero")
             return 1
         }
         let mut width: i32 = 0

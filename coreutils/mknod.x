@@ -15,16 +15,16 @@ fn main(): i32 {
         // FIFO (named pipe)
         let rc: i32 = make_fifo(name)
         if rc != 0 {
-            print_str("mknod: cannot create '")
-            print_str(name)
-            print_str("'\n")
+            eprint_str("mknod: cannot create '")
+            eprint_str(name)
+            eprint_str("'\n")
             return 1
         }
         return 0
     }
     if c == 'c' || c == 'b' {
         if argc() < 5 {
-            print_str("mknod: device nodes require major and minor numbers\n")
+            eprint_str("mknod: device nodes require major and minor numbers\n")
             return 1
         }
         let maj: i32 = str_to_int(argv(3))
@@ -33,15 +33,15 @@ fn main(): i32 {
         if c == 'b' { mode = mode | 010666 } else { mode = mode | 020666 }
         let rc: i32 = mknod_dev(name, mode, maj, min)
         if rc != 0 {
-            print_str("mknod: cannot create device '")
-            print_str(name)
-            print_str("' (requires root)\n")
+            eprint_str("mknod: cannot create device '")
+            eprint_str(name)
+            eprint_str("' (requires root)\n")
             return 1
         }
         return 0
     }
-    print_str("mknod: invalid type '")
-    print_str(typ)
-    print_str("' (use p, c, or b)\n")
+    eprint_str("mknod: invalid type '")
+    eprint_str(typ)
+    eprint_str("' (use p, c, or b)\n")
     return 1
 }

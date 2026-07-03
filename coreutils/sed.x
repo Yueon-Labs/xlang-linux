@@ -184,7 +184,7 @@ fn main(): i32 {
 
     if in_place == 1 {
         if str_len(file) == 0 {
-            print_str("sed: -i requires a file argument\n")
+            eprint_str("sed: -i requires a file argument\n")
             return 1
         }
     }

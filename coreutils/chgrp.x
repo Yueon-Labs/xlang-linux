@@ -51,9 +51,9 @@ fn main(): i32 {
     let gname: String = argv(1)
     let gid: i32 = lookup_group(gname)
     if gid < 0 {
-        print_str("chgrp: invalid group: ")
-        print_str(gname)
-        print_str("\n")
+        eprint_str("chgrp: invalid group: ")
+        eprint_str(gname)
+        eprint_str("\n")
         return 1
     }
     let mut fail: i32 = 0
@@ -62,9 +62,9 @@ fn main(): i32 {
         let path: String = argv(ai)
         let rc: i32 = chgrp_file(path, gid)
         if rc != 0 {
-            print_str("chgrp: cannot access '")
-            print_str(path)
-            print_str("'\n")
+            eprint_str("chgrp: cannot access '")
+            eprint_str(path)
+            eprint_str("'\n")
             fail = 1
         }
         ai += 1

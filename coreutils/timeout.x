@@ -30,11 +30,11 @@ fn main(): i32 {
     let cmdpid: i32 = fork()
     if cmdpid == 0 {
         exec_split(cmd)
-        print_str("timeout: failed to exec")
+        eprint_str("timeout: failed to exec")
         return 127
     }
     if cmdpid < 0 {
-        print_str("timeout: fork failed")
+        eprint_str("timeout: fork failed")
         return 1
     }
 

@@ -36,7 +36,7 @@ fn main(): i32 {
     }
     let fd: i32 = open_read(file)
     if fd < 0 {
-        print_str("strings: cannot open file")
+        eprint_str("strings: cannot open file")
         return 1
     }
     sb_new()

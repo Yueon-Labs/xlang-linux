@@ -74,9 +74,9 @@ fn main(): i32 {
     if argc() >= 2 {
         let name: String = argv(1)
         if show_user_info(name) == 0 {
-            print_str("pinky: user '")
-            print_str(name)
-            print_str("' not found\n")
+            eprint_str("pinky: user '")
+            eprint_str(name)
+            eprint_str("' not found\n")
             return 1
         }
     } else {

@@ -27,12 +27,12 @@ else
     echo "  FAIL directory [$out2]"; FAIL=$((FAIL+1))
 fi
 
-out3=$("$ST" "$ROOT/nonexistent" 2>/dev/null)
-rc=$?
-if [ $rc -ne 0 ] && echo "$out3" | grep -q "No such file"; then
-    echo "  ok   not found + exit 1"; PASS=$((PASS+1))
+out3=$("$ST" "$ROOT/nonexistent" 2>/tmp/stat_err); rc=$?
+err3=$(cat /tmp/stat_err)
+if [ $rc -ne 0 ] && [ -z "$out3" ] && echo "$err3" | grep -q "No such file"; then
+    echo "  ok   not found + exit 1 (stderr)"; PASS=$((PASS+1))
 else
-    echo "  FAIL not found [$out3] rc=$rc"; FAIL=$((FAIL+1))
+    echo "  FAIL not found [$out3] rc=$rc err=[$err3]"; FAIL=$((FAIL+1))
 fi
 
 echo "== -c FORMAT"

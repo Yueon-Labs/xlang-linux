@@ -41,9 +41,9 @@ fn main(): i32 {
         return 1
     }
     if file_exists(path) == 0 {
-        print_raw("stat: cannot stat '")
-        print_raw(path)
-        print_raw("': No such file or directory\n")
+        eprint_raw("stat: cannot stat '")
+        eprint_raw(path)
+        eprint_raw("': No such file or directory\n")
         return 1
     }
 
