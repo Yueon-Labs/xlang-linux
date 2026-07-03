@@ -18,33 +18,40 @@ fn has_dot(s: String): bool {
 }
 
 fn main(): i32 {
-    if argc() < 2 {
-        print_str("usage: seq <last> | <first> <last> | <first> <step> <last>")
-        return 1
-    }
-
-    let is_float: bool = false
+    let mut want_w: i32 = 0
     let mut any_float: i32 = 0
+    let pos: Vec<String> = vec_new()
     let mut ai: i32 = 1
     while ai < argc() {
-        if has_dot(argv(ai)) { any_float = 1 }
+        let a: String = argv(ai)
+        if a == "-w" {
+            want_w = 1
+        } else {
+            pos.push(a)
+            if has_dot(a) { any_float = 1 }
+        }
         ai = ai + 1
+    }
+    let np: i32 = vec_len(pos)
+    if np == 0 {
+        print_str("usage: seq [-w] <last> | <first> <last> | <first> <step> <last>")
+        return 1
     }
 
     if any_float == 1 {
         let mut first: f64 = 1.0
         let mut step: f64 = 1.0
         let mut last: f64 = 0.0
-        if argc() == 2 {
-            last = str_to_float(argv(1))
+        if np == 1 {
+            last = str_to_float(pos[0])
         } else {
-            if argc() == 3 {
-                first = str_to_float(argv(1))
-                last = str_to_float(argv(2))
+            if np == 2 {
+                first = str_to_float(pos[0])
+                last = str_to_float(pos[1])
             } else {
-                first = str_to_float(argv(1))
-                step = str_to_float(argv(2))
-                last = str_to_float(argv(3))
+                first = str_to_float(pos[0])
+                step = str_to_float(pos[1])
+                last = str_to_float(pos[2])
             }
         }
         if step == 0.0 {
@@ -69,32 +76,47 @@ fn main(): i32 {
         let mut first: i32 = 1
         let mut step: i32 = 1
         let mut last: i32 = 0
-        if argc() == 2 {
-            last = str_to_int(argv(1))
+        if np == 1 {
+            last = str_to_int(pos[0])
         } else {
-            if argc() == 3 {
-                first = str_to_int(argv(1))
-                last = str_to_int(argv(2))
+            if np == 2 {
+                first = str_to_int(pos[0])
+                last = str_to_int(pos[1])
             } else {
-                first = str_to_int(argv(1))
-                step = str_to_int(argv(2))
-                last = str_to_int(argv(3))
+                first = str_to_int(pos[0])
+                step = str_to_int(pos[1])
+                last = str_to_int(pos[2])
             }
         }
         if step == 0 {
             print_str("seq: step cannot be zero")
             return 1
         }
+        let mut width: i32 = 0
+        if want_w == 1 {
+            let wf: i32 = str_len(int_to_str(first))
+            let wl: i32 = str_len(int_to_str(last))
+            width = wf
+            if wl > width { width = wl }
+        }
         let mut i: i32 = first
         if step > 0 {
             while i <= last {
-                print_raw(int_to_str(i))
+                if want_w == 1 {
+                    print_raw(pad_zero(i, width))
+                } else {
+                    print_raw(int_to_str(i))
+                }
                 print_raw("\n")
                 i = i + step
             }
         } else {
             while i >= last {
-                print_raw(int_to_str(i))
+                if want_w == 1 {
+                    print_raw(pad_zero(i, width))
+                } else {
+                    print_raw(int_to_str(i))
+                }
                 print_raw("\n")
                 i = i + step
             }
