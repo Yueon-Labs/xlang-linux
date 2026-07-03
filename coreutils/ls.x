@@ -1,8 +1,9 @@
 module main
 
-// ls [-l] [-a] [-R] [path...]
+// ls [-l] [-a] [-h] [-R] [path...]
 //   -l   long format: MODE NLINK USER GROUP SIZE DATE NAME
 //   -a   all entries (including dotfiles; "." and "..")
+//   -h   human-readable sizes (K, M, G) with -l
 //   -R   recursively list subdirectories
 // Sorted. Defaults to ".". -l uses stat_field (mode/nlink/uid/gid/size/mtime)
 // + fmt_ctime + uid_to_name/gid_to_name for real user/group names.
@@ -10,6 +11,36 @@ module main
 // Build a 10-char permission string "drwxr-xr-x" from mode bits.
 // Octal-as-decimal: S_IFDIR=16384, S_IFLNK=40960; perms owner r/w/x=256/128/64,
 // group 32/16/8, other 4/2/1.
+// Human-readable size: 4.0K, 1.2M, 2.0G. Integer part + 1 decimal.
+fn human_size(bytes: i32): String {
+    if bytes >= 1073741824 {
+        let whole: i32 = bytes / 1073741824
+        let frac: i32 = (bytes % 1073741824) * 10 / 1073741824
+        if frac == 0 {
+            return str_concat(int_to_str(whole), ".0G")
+        }
+        return str_concat(str_concat(str_concat(int_to_str(whole), "."), int_to_str(frac)), "G")
+    }
+    if bytes >= 1048576 {
+        let whole: i32 = bytes / 1048576
+        let frac: i32 = (bytes % 1048576) * 10 / 1048576
+        if frac == 0 {
+            return str_concat(int_to_str(whole), ".0M")
+        }
+        return str_concat(str_concat(str_concat(int_to_str(whole), "."), int_to_str(frac)), "M")
+    }
+    if bytes >= 1024 {
+        let whole: i32 = bytes / 1024
+        let frac: i32 = (bytes % 1024) * 10 / 1024
+        if frac == 0 {
+            return str_concat(int_to_str(whole), ".0K")
+        }
+        return str_concat(str_concat(str_concat(int_to_str(whole), "."), int_to_str(frac)), "K")
+    }
+    return int_to_str(bytes)
+}
+
+// Build a 10-char permission string "drwxr-xr-x" from mode bits.
 fn perm_string(mode: i32): String {
     sb_new()
     if (mode & 16384) != 0 { sb_push("d") } else {
@@ -48,7 +79,7 @@ fn sort_vec(v: Vec<String>, n: i32): i32 {
 }
 
 // Print one entry, long or short.
-fn print_entry(path: String, name: String, want_l: i32): i32 {
+fn print_entry(path: String, name: String, want_l: i32, want_h: i32): i32 {
     if want_l == 0 {
         print_raw(name)
         print_raw("\n")
@@ -80,7 +111,11 @@ fn print_entry(path: String, name: String, want_l: i32): i32 {
         print_raw(int_to_str(gid))
     }
     print_raw(" ")
-    print_raw(int_to_str(size))
+    if want_h == 1 {
+        print_raw(human_size(size))
+    } else {
+        print_raw(int_to_str(size))
+    }
     print_raw(" ")
     print_raw(fmt_ctime(mt))
     print_raw(" ")
@@ -91,7 +126,7 @@ fn print_entry(path: String, name: String, want_l: i32): i32 {
 
 // List one directory: collect entries (sorted, dotfiles per -a), print them,
 // and (if -R) recurse into subdirectories.
-fn list_dir(path: String, want_l: i32, want_a: i32, want_r: i32): i32 {
+fn list_dir(path: String, want_l: i32, want_a: i32, want_r: i32, want_h: i32): i32 {
     let names: Vec<String> = vec_new()
     let dirs: Vec<String> = vec_new()
     let n: i32 = dir_count(path)
@@ -118,7 +153,7 @@ fn list_dir(path: String, want_l: i32, want_a: i32, want_r: i32): i32 {
     while p < nn {
         let nm: String = names[p]
         let full: String = str_concat(str_concat(path, "/"), nm)
-        print_entry(full, nm, want_l)
+        print_entry(full, nm, want_l, want_h)
         if is_dir(full) {
             if str_eq(nm, ".") == 0 {
                 if str_eq(nm, "..") == 0 {
@@ -138,7 +173,7 @@ fn list_dir(path: String, want_l: i32, want_a: i32, want_r: i32): i32 {
             print_raw("\n")
             print_raw(sub)
             print_raw(":\n")
-            list_dir(sub, want_l, want_a, want_r)
+            list_dir(sub, want_l, want_a, want_r, want_h)
             d = d + 1
         }
     }
@@ -149,6 +184,7 @@ fn main(): i32 {
     let mut want_l: i32 = 0
     let mut want_a: i32 = 0
     let mut want_r: i32 = 0
+    let mut want_h: i32 = 0
     let paths: Vec<String> = vec_new()
 
     let mut i: i32 = 1
@@ -162,6 +198,7 @@ fn main(): i32 {
                     if f == 108 { want_l = 1 }
                     if f == 97 { want_a = 1 }
                     if f == 82 { want_r = 1 }
+                    if f == 104 { want_h = 1 }
                     ci = ci + 1
                 }
                 i = i + 1
@@ -193,9 +230,9 @@ fn main(): i32 {
             print_raw(":\n")
         }
         if is_dir(p) {
-            list_dir(p, want_l, want_a, want_r)
+            list_dir(p, want_l, want_a, want_r, want_h)
         } else {
-            print_entry(p, p, want_l)
+            print_entry(p, p, want_l, want_h)
         }
         k = k + 1
     }
