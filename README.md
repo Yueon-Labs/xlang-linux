@@ -1,6 +1,6 @@
 # xlang-linux — Linux userland in X Language
 
-**101 coreutils + a shell + network tools**, all written in [xlang](https://github.com/dsadsasdaddas/xlang), compiled to C, and verified against GNU on Linux CI.
+**101 coreutils + a shell + network tools**, all written in [xlang](https://github.com/Yueon-Labs/xlang), compiled to C, and verified against GNU on Linux CI.
 
 ## Highlights
 
@@ -41,7 +41,7 @@ sum=$((a + b))   # arithmetic expansion
 
 ## Build
 
-Requires the [xlang compiler](https://github.com/dsadsasdaddas/xlang):
+Requires the [xlang compiler](https://github.com/Yueon-Labs/xlang):
 ```sh
 xlangc c coreutils/cat.x && cc -O2 -o cat cat.c && echo hello | ./cat
 ```
