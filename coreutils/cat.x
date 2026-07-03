@@ -91,6 +91,35 @@ fn main(): i32 {
     // Gather content (concatenate files, or stdin).
     let mut text: String = ""
     let nf: i32 = vec_len(files)
+    // Check if plain (no flags) BEFORE reading stdin — sendfile_stdout needs
+    // to consume stdin first (zero-copy). If it fails (pipe stdin, non-Linux,
+    // or file arg), fall back to read+print.
+    let mut plain: i32 = 1
+    if want_n == 1 { plain = 0 }
+    if want_b == 1 { plain = 0 }
+    if want_s == 1 { plain = 0 }
+    if want_e == 1 { plain = 0 }
+    if want_t == 1 { plain = 0 }
+
+    // Plain cat from stdin (no file args): try zero-copy sendfile first.
+    if plain == 1 {
+        if nf == 0 {
+            if sendfile_stdout() >= 0 {
+                return 0
+            }
+            text = read_stdin()
+        } else {
+            let mut p: i32 = 0
+            while p < nf {
+                text = str_concat(text, read_file(files[p]))
+                p = p + 1
+            }
+        }
+        print_raw(text)
+        return 0
+    }
+
+    // Flagged cat: read input, process line-by-line.
     if nf == 0 {
         text = read_stdin()
     } else {
@@ -102,21 +131,6 @@ fn main(): i32 {
     }
 
     let n: i32 = str_len(text)
-    // Fast path: no flags → sendfile (zero-copy stdin→stdout on Linux, matching
-    // GNU cat's splice). sendfile_stdout returns -1 for pipe stdin or non-Linux,
-    // then we fall back to print_raw (one bulk write).
-    let mut plain: i32 = 1
-    if want_n == 1 { plain = 0 }
-    if want_b == 1 { plain = 0 }
-    if want_s == 1 { plain = 0 }
-    if want_e == 1 { plain = 0 }
-    if want_t == 1 { plain = 0 }
-    if plain == 1 {
-        if sendfile_stdout() < 0 {
-            print_raw(text)
-        }
-        return 0
-    }
     let mut lineno: i32 = 0
     let mut blineno: i32 = 0
     let mut prev_blank: i32 = 0
