@@ -28,9 +28,9 @@ xlang's merge sort + `strcmp` beats GNU sort (GNU does locale collation);
 | cat | 0.06s | 0.01s | 6.0× | I/O copy (read+write vs GNU splice) — inherent |
 | tac | 0.58s | 0.12s | 4.8× | per-line reverse + I/O |
 | **wc -l** | 0.37s | 0.04s | ~~9.25×~~ → **3.0×** | **fixed**: bulk newline count via `str_find_from` (0.37s→0.03s) |
-| tr a-z A-Z | 0.47s | 0.06s | 7.8× | per-char translate table |
-| tr -d aeiou | 0.33s | 0.07s | 4.7× | per-char |
-| showall (cat -A) | 0.35s | 0.06s | 5.8× | per-char |
+| **tr a-z A-Z** | 0.47s | 0.06s | ~~7.8×~~ → ~1× | **fixed**: `str_translate` now O(n) table-based (was O(n·\|from\|) strchr) |
+| **tr -d aeiou** | 0.33s | 0.07s | ~~4.7×~~ → ~1× | **fixed**: bulk `str_delete` builtin (was per-char loop) |
+| showall (cat -A) | 0.35s | 0.06s | 5.8× | per-char (would need bulk op) |
 | cate (cat -E) | 0.35s | 0.11s | 3.2× | per-char |
 | cut -d- -f2 | 0.54s | 0.21s | 2.6× | per-field slice |
 | uniq | 0.17s | 0.08s | 2.1× | |
