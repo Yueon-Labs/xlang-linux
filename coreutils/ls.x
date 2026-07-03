@@ -1,12 +1,11 @@
 module main
 
 // ls [-l] [-a] [-R] [path...]
-//   -l   long format: MODE NLINK UID GID SIZE DATE NAME
+//   -l   long format: MODE NLINK USER GROUP SIZE DATE NAME
 //   -a   all entries (including dotfiles; "." and "..")
 //   -R   recursively list subdirectories
 // Sorted. Defaults to ".". -l uses stat_field (mode/nlink/uid/gid/size/mtime)
-// + fmt_ctime. Owner/group shown as numeric uid/gid (GNU prints names — needs
-// getpwuid/getgrgid, not yet built); everything else is ls -l-shaped.
+// + fmt_ctime + uid_to_name/gid_to_name for real user/group names.
 
 // Build a 10-char permission string "drwxr-xr-x" from mode bits.
 // Octal-as-decimal: S_IFDIR=16384, S_IFLNK=40960; perms owner r/w/x=256/128/64,
@@ -67,7 +66,19 @@ fn print_entry(path: String, name: String, want_l: i32): i32 {
     print_raw(" ")
     print_raw(int_to_str(uid))
     print_raw(" ")
-    print_raw(int_to_str(gid))
+    let uname: String = uid_to_name(uid)
+    if str_len(uname) > 0 {
+        print_raw(uname)
+    } else {
+        print_raw(int_to_str(gid))
+    }
+    print_raw(" ")
+    let gname: String = gid_to_name(gid)
+    if str_len(gname) > 0 {
+        print_raw(gname)
+    } else {
+        print_raw(int_to_str(gid))
+    }
     print_raw(" ")
     print_raw(int_to_str(size))
     print_raw(" ")
