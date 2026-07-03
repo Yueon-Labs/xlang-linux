@@ -37,6 +37,9 @@ fn main(): i32 {
     } else {
         s = read_stdin()
     }
+    // Buffer the whole output and write once (per-char print_raw is N mallocs
+    // + N syscalls — the fold trap). Output size ~ input size, so safe.
+    sb_new()
     let n: i32 = str_len(s)
     let mut k: i32 = 0
     let mut col: i32 = 0
@@ -46,12 +49,12 @@ fn main(): i32 {
             let spaces: i32 = tabstop - (col % tabstop)
             let mut j: i32 = 0
             while j < spaces {
-                print_raw(" ")
+                sb_push_char(32)
                 j = j + 1
             }
             col = col + spaces
         } else {
-            print_raw(chr(c))
+            sb_push_char(c)
             if c == 10 {
                 col = 0
             } else {
@@ -60,6 +63,7 @@ fn main(): i32 {
         }
         k = k + 1
     }
+    print_raw(sb_str())
     return 0
 }
 

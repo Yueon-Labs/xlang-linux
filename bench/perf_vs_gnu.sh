@@ -17,7 +17,7 @@ mkdir -p build bin
 
 # Build the xlang coreutils we benchmark (skip any that fail to build — some
 # use Linux-only directory/network builtins and won't link on Windows).
-TOOLS="cat tac rev head tail wc sort uniq tr cut fold nl grep base64 base32 md5sum sha256sum expand paste comm cate showall"
+TOOLS="cat tac rev head tail wc sort uniq tr cut fold nl grep base64 base32 md5sum sha256sum expand unexpand paste comm cate showall"
 for t in $TOOLS; do
     if [ -f "coreutils/$t.x" ]; then
         "$XLANGC" c "coreutils/$t.x" -o "build/$t.c" >/dev/null 2>&1
@@ -97,6 +97,7 @@ race "grep word-500" build/perf_in.txt    "$B/grep word-500"  "grep word-500"
 race "base64"       build/perf_blob.txt   "$B/base64"         "base64"
 race "md5sum"       build/perf_blob.txt   "$B/md5sum"         "md5sum"
 race "expand"       build/perf_tab.txt    "$B/expand"         "expand"
+race "unexpand -a"  build/perf_in.txt     "$B/unexpand -a"    "unexpand -a"
 race "cate (cat -E)"   build/perf_in.txt  "$B/cate"           "cat -E"
 race "showall (cat -A)" build/perf_in.txt "$B/showall"        "cat -A"
 echo "=== done ==="
