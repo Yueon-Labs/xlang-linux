@@ -48,8 +48,7 @@ fn main(): i32 {
                                 let used: i64 = total - avail
                                 let mut pct: i32 = 0
                                 if total > 0 {
-                                    let ratio: f64 = int_to_f64(used) / int_to_f64(total) * 100.0
-                                    pct = f64_to_int(ratio)
+                                    pct = used * 100 / total
                                 }
                                 print_raw(format_size(total))
                                 print_raw("  ")
