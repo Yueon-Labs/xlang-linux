@@ -38,7 +38,7 @@ fn main(): i32 {
     }
     let nf: i32 = vec_len(files)
     if nf == 0 {
-        print_str("usage: paste [-d DELIMS] [-s] <file>...")
+        eprint_str("usage: paste [-d DELIMS] [-s] <file>...")
         return 1
     }
 

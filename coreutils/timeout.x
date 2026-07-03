@@ -11,7 +11,7 @@ module main
 
 fn main(): i32 {
     if argc() < 3 {
-        print_str("usage: timeout <duration_s> <command...>")
+        eprint_str("usage: timeout <duration_s> <command...>")
         return 1
     }
     let duration: i32 = str_to_int(argv(1))

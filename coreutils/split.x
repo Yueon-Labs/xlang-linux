@@ -5,7 +5,7 @@ module main
 // each chunk once (O(n) total) instead of accumulating with str_concat.
 fn main(): i32 {
     if argc() < 3 {
-        print_str("usage: split <file> <lines-per-chunk>")
+        eprint_str("usage: split <file> <lines-per-chunk>")
         return 1
     }
     let s: String = read_file(argv(1))

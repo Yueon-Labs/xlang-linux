@@ -7,7 +7,7 @@ module main
 
 fn main(): i32 {
     if argc() < 2 {
-        print_str("usage: xargs <command> [args...]")
+        eprint_str("usage: xargs <command> [args...]")
         return 1
     }
     // Build the command: initial args from argv, then stdin tokens appended.

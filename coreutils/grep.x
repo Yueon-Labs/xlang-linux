@@ -111,7 +111,7 @@ fn grep_recurse(dir: String, pat: String, ign: i32, inv: i32, want_n: i32, want_
 
 fn main(): i32 {
     if argc() < 2 {
-        print_str("usage: grep [-rinvcH] <pattern> [file...]")
+        eprint_str("usage: grep [-rinvcH] <pattern> [file...]")
         return 1
     }
 
@@ -148,7 +148,7 @@ fn main(): i32 {
     }
 
     if ai >= argc() {
-        print_str("usage: grep [-rinvcH] <pattern> [file...]")
+        eprint_str("usage: grep [-rinvcH] <pattern> [file...]")
         return 1
     }
     let pat: String = argv(ai)

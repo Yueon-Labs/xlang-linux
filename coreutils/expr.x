@@ -26,7 +26,7 @@ fn is_num(s: String): bool {
 
 fn main(): i32 {
     if argc() < 2 {
-        print_str("usage: expr <a> <op> <b> [...]")
+        eprint_str("usage: expr <a> <op> <b> [...]")
         return 2
     }
 

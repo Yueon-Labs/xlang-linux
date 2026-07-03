@@ -54,7 +54,7 @@ fn main(): i32 {
     }
     let nf: i32 = vec_len(files)
     if nf == 0 {
-        print_str("usage: install [-m MODE] [-d] SRC... DST")
+        eprint_str("usage: install [-m MODE] [-d] SRC... DST")
         return 1
     }
 
@@ -95,7 +95,7 @@ fn main(): i32 {
     }
 
     if nf == 1 {
-        print_str("usage: install [-m MODE] SRC DST")
+        eprint_str("usage: install [-m MODE] SRC DST")
         return 1
     }
 

@@ -5,7 +5,7 @@ module main
 
 fn main(): i32 {
     if argc() < 2 {
-        print_str("usage: chroot <newroot> [command...]\n")
+        eprint_str("usage: chroot <newroot> [command...]\n")
         return 1
     }
     let newroot: String = argv(1)

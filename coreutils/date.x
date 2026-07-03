@@ -204,7 +204,7 @@ fn main(): i32 {
             print_str("date (xlang coreutils) 1.0\n")
             return 0
         } else if a == "--help" || a == "-h" {
-            print_str("usage: date [+FORMAT] [-u] [-R] [-I[FMT]] [-d @EPOCH] [-r FILE]\n")
+            eprint_str("usage: date [+FORMAT] [-u] [-R] [-I[FMT]] [-d @EPOCH] [-r FILE]\n")
             return 0
         }
         ai += step

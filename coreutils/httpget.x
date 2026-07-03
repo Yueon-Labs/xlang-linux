@@ -68,7 +68,7 @@ fn main(): i32 {
         }
     }
     if str_len(url) == 0 {
-        print_str("usage: httpget <url> [-o file] [-X method] [-d data|@file]")
+        eprint_str("usage: httpget <url> [-o file] [-X method] [-d data|@file]")
         return 1
     }
     let u: Url = parse_url(url)

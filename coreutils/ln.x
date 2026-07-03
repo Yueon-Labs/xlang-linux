@@ -42,7 +42,7 @@ fn main(): i32 {
     }
     let nt: i32 = vec_len(targets)
     if nt < 2 {
-        print_str("usage: ln [-s] <target> <link>")
+        eprint_str("usage: ln [-s] <target> <link>")
         return 1
     }
 

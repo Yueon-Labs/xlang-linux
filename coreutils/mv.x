@@ -38,7 +38,7 @@ fn main(): i32 {
     }
     let nf: i32 = vec_len(files)
     if nf < 2 {
-        print_str("usage: mv [-f] <src>... <dst>")
+        eprint_str("usage: mv [-f] <src>... <dst>")
         return 1
     }
 

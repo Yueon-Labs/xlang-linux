@@ -5,7 +5,7 @@ module main
 
 fn main(): i32 {
     if argc() < 3 {
-        print_str("usage: runcon <context> <command> [args...]\n")
+        eprint_str("usage: runcon <context> <command> [args...]\n")
         return 1
     }
     // Build command from argv(2..).

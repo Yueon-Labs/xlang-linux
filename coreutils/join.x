@@ -118,7 +118,7 @@ fn main(): i32 {
         }
     }
     if str_len(fa) == 0 || str_len(fb) == 0 {
-        print_str("usage: join [-1 F1] [-2 F2] [-t SEP] [-a 1|2] file1 file2")
+        eprint_str("usage: join [-1 F1] [-2 F2] [-t SEP] [-a 1|2] file1 file2")
         return 1
     }
     // Output separator: the -t char, or a space for the default whitespace mode.

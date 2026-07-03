@@ -29,7 +29,7 @@ fn read_lines(path: String): Vec<String> {
 
 fn main(): i32 {
     if argc() < 3 {
-        print_str("usage: diff <file_a> <file_b>")
+        eprint_str("usage: diff <file_a> <file_b>")
         return 2
     }
     let a: Vec<String> = read_lines(argv(1))

@@ -42,7 +42,7 @@ fn main(): i32 {
         }
     }
     if str_len(fb) == 0 {
-        print_str("usage: comm [-123] <file1> <file2>")
+        eprint_str("usage: comm [-123] <file1> <file2>")
         return 1
     }
     let ra: String = str_trim(read_file(fa))

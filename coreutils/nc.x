@@ -63,7 +63,7 @@ fn main(): i32 {
 
     // connect mode: nc <host> <port>
     if argc() < 3 {
-        print_str("usage: nc <host> <port>   |   nc -l <port>")
+        eprint_str("usage: nc <host> <port>   |   nc -l <port>")
         return 1
     }
     let host: String = argv(1)

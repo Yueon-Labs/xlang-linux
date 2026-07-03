@@ -4,7 +4,7 @@ module main
 // Default signal is 15 (SIGTERM).
 fn main(): i32 {
     if argc() < 2 {
-        print_str("usage: kill <pid> [signal]")
+        eprint_str("usage: kill <pid> [signal]")
         return 1
     }
     let pid: i32 = str_to_int(argv(1))

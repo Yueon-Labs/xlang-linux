@@ -4,7 +4,7 @@ module main
 // Resolves symlinks and . / .. components.
 fn main(): i32 {
     if argc() < 2 {
-        print_str("usage: realpath <path>")
+        eprint_str("usage: realpath <path>")
         return 1
     }
     let resolved: String = realpath(argv(1))

@@ -30,7 +30,7 @@ fn main(): i32 {
     }
     let nf: i32 = vec_len(files)
     if nf == 0 {
-        print_str("usage: touch [-c] <file>...")
+        eprint_str("usage: touch [-c] <file>...")
         return 1
     }
     let mut rc: i32 = 0

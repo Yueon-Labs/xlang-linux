@@ -151,7 +151,7 @@ fn parse_expr(toks: Vec<Tok>, pos: Vec<i32>): f64 {
 
 fn main(): i32 {
     if argc() < 2 {
-        print_str("usage: calc <expr>")
+        eprint_str("usage: calc <expr>")
         return 1
     }
     let toks: Vec<Tok> = tokenize(argv(1))

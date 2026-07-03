@@ -37,7 +37,7 @@ fn main(): i32 {
         i = i + 1
     }
     if str_len(path) == 0 {
-        print_str("usage: stat [-c FORMAT] <path>")
+        eprint_str("usage: stat [-c FORMAT] <path>")
         return 1
     }
     if file_exists(path) == 0 {

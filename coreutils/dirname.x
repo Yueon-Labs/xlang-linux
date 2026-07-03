@@ -3,7 +3,7 @@ module main
 // dirname <path> — strip last component, keep directory (like GNU dirname).
 fn main(): i32 {
     if argc() < 2 {
-        print_str("usage: dirname <path>")
+        eprint_str("usage: dirname <path>")
         return 1
     }
     let path: String = argv(1)

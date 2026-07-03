@@ -3,7 +3,7 @@ module main
 // basename <path> — strip directory, keep filename (like GNU basename).
 fn main(): i32 {
     if argc() < 2 {
-        print_str("usage: basename <path>")
+        eprint_str("usage: basename <path>")
         return 1
     }
     let path: String = argv(1)
