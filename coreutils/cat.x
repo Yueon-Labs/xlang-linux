@@ -102,6 +102,19 @@ fn main(): i32 {
     }
 
     let n: i32 = str_len(text)
+    // Fast path: no flags → copy the whole input in ONE write. Without this,
+    // plain cat still walks every line and print_raw's each (2 syscalls/line),
+    // ~3x slower than GNU cat's block read/write.
+    let mut plain: i32 = 1
+    if want_n == 1 { plain = 0 }
+    if want_b == 1 { plain = 0 }
+    if want_s == 1 { plain = 0 }
+    if want_e == 1 { plain = 0 }
+    if want_t == 1 { plain = 0 }
+    if plain == 1 {
+        print_raw(text)
+        return 0
+    }
     let mut lineno: i32 = 0
     let mut blineno: i32 = 0
     let mut prev_blank: i32 = 0

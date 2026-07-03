@@ -23,11 +23,14 @@ fn main(): i32 {
         lines.push(str_slice(s, start, n))
     }
     let count: i32 = vec_len(lines)
+    // Buffer output (one write) — per-line print_raw is N syscalls.
+    sb_new()
     let mut k: i32 = count - 1
     while k >= 0 {
-        print_raw(lines[k])
-        print_raw("\n")
+        sb_push(lines[k])
+        sb_push("\n")
         k -= 1
     }
+    print_raw(sb_str())
     return 0
 }
