@@ -198,11 +198,11 @@ fn main(): i32 {
     }
 
     if str_len(file) == 0 {
-        print_raw("csplit: usage: csplit [OPTION]... FILE PATTERN...\n")
+        eprint_raw("csplit: usage: csplit [OPTION]... FILE PATTERN...\n")
         return 1
     }
     if vec_len(patterns) == 0 {
-        print_raw("csplit: missing pattern\n")
+        eprint_raw("csplit: missing pattern\n")
         return 1
     }
 
@@ -342,9 +342,9 @@ fn main(): i32 {
         if keep == 0 {
             cleanup(prefix, digits, state[1])
         }
-        print_raw("csplit: '")
-        print_raw(patterns[pi])
-        print_raw("': match not found or line out of range\n")
+        eprint_raw("csplit: '")
+        eprint_raw(patterns[pi])
+        eprint_raw("': match not found or line out of range\n")
         return 1
     }
 

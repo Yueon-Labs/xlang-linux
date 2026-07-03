@@ -15,12 +15,17 @@ X=/tmp/xpathchk
 
 cmp_case() {
   local label="$1"; shift
-  local xo go xrc grc
-  xo=$("$X" "$@" 2>/dev/null); xrc=$?
+  local xo go xrc grc xerr
+  xo=$("$X" "$@" 2>/tmp/xpkerr); xrc=$?
+  xerr=$(cat /tmp/xpkerr)
   go=$(pathchk "$@" 2>/dev/null); grc=$?
   local ok=1
   [ "$xrc" = "$grc" ] || ok=0
-  if [ "$xrc" = 0 ] && [ "$grc" = 0 ]; then [ "$xo" = "$go" ] || ok=0; fi
+  # stdout always compared: diagnostics (now on stderr via eprint_*) don't
+  # leak into stdout, so it matches GNU (empty) on both success and error.
+  [ "$xo" = "$go" ] || ok=0
+  # routing check: on error the diagnostic must land on stderr, not stdout.
+  if [ "$xrc" != 0 ] && [ -z "$xerr" ]; then ok=0; fi
   if [ $ok = 1 ]; then echo "  ok   $label"; PASS=$((PASS+1)); else
     echo "  FAIL $label (x=$xrc g=$grc)"; FAIL=$((FAIL+1)); fi
 }
