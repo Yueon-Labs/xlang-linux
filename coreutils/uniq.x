@@ -6,24 +6,24 @@ module main
 fn emit(line: String, c: i32, want_c: bool, want_d: bool, want_u: bool): i32 {
     if want_d {
         if c > 1 {
-            print_raw(line)
-            print_raw("\n")
+            sb_push(line)
+            sb_push("\n")
         }
     } else {
         if want_u {
             if c == 1 {
-                print_raw(line)
-                print_raw("\n")
+                sb_push(line)
+                sb_push("\n")
             }
         } else {
             if want_c {
-                print_raw(pad_int(c, 7))
-                print_raw(" ")
-                print_raw(line)
-                print_raw("\n")
+                sb_push(pad_int(c, 7))
+                sb_push(" ")
+                sb_push(line)
+                sb_push("\n")
             } else {
-                print_raw(line)
-                print_raw("\n")
+                sb_push(line)
+                sb_push("\n")
             }
         }
     }
@@ -60,6 +60,8 @@ fn main(): i32 {
         s = read_stdin()
     }
     let n: i32 = str_len(s)
+    // Buffer output (one write at the end) — per-line print_raw is N syscalls.
+    sb_new()
     let mut prev: String = ""
     let mut count: i32 = 0
     let mut have_run: bool = false
@@ -88,5 +90,6 @@ fn main(): i32 {
     if have_run {
         emit(prev, count, want_c, want_d, want_u)
     }
+    print_raw(sb_str())
     return 0
 }

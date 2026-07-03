@@ -49,6 +49,8 @@ fn main(): i32 {
         s = read_stdin()
     }
     let n: i32 = str_len(s)
+    // Buffer output (one write at the end) — per-line print_raw is N syscalls.
+    sb_new()
     let mut lineno: i32 = 1
     let mut start: i32 = 0
     let mut k: i32 = 0
@@ -59,15 +61,16 @@ fn main(): i32 {
         }
         if is_eol {
             if k > start {
-                print_raw(pad_int(lineno, width))
-                print_raw(sep)
-                print_raw(str_slice(s, start, k))
-                print_raw("\n")
+                sb_push(pad_int(lineno, width))
+                sb_push(sep)
+                sb_push(str_slice(s, start, k))
+                sb_push("\n")
             }
             lineno = lineno + 1
             start = k + 1
         }
         k = k + 1
     }
+    print_raw(sb_str())
     return 0
 }
