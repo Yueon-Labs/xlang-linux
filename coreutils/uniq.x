@@ -66,26 +66,28 @@ fn main(): i32 {
     let mut count: i32 = 0
     let mut have_run: bool = false
     let mut start: i32 = 0
-    let mut k: i32 = 0
-    while k < n {
-        if str_char_at(s, k) == 10 {
-            let line: String = str_slice(s, start, k)
-            if !have_run {
+    // Bulk newline scan via str_find_from (strchr for 1-char needle — fast on
+    // all platforms) instead of the per-char str_char_at loop.
+    while true {
+        let nl: i32 = str_find_from(s, "\n", start)
+        if nl < 0 {
+            break
+        }
+        let line: String = str_slice(s, start, nl)
+        if !have_run {
+            prev = line
+            count = 1
+            have_run = true
+        } else {
+            if str_eq(line, prev) {
+                count = count + 1
+            } else {
+                emit(prev, count, want_c, want_d, want_u)
                 prev = line
                 count = 1
-                have_run = true
-            } else {
-                if str_eq(line, prev) {
-                    count = count + 1
-                } else {
-                    emit(prev, count, want_c, want_d, want_u)
-                    prev = line
-                    count = 1
-                }
             }
-            start = k + 1
         }
-        k = k + 1
+        start = nl + 1
     }
     if have_run {
         emit(prev, count, want_c, want_d, want_u)
