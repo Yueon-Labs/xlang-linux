@@ -38,11 +38,12 @@ fn main(): i32 {
     let mut s: String = ""
     let mut delete_mode: bool = false
     let mut squeeze_mode: bool = false
+    let mut complement: bool = false
     let mut set1: String = ""
     let mut set2: String = ""
 
     if argc() < 2 {
-        print_str("usage: tr [-ds] <set1> [set2] [file]")
+        print_str("usage: tr [-dsc] <set1> [set2] [file]")
         return 1
     }
 
@@ -56,6 +57,7 @@ fn main(): i32 {
                 let c: i32 = str_char_at(a, k)
                 if c == 100 { delete_mode = true }
                 if c == 115 { squeeze_mode = true }
+                if c == 99 { complement = true }
                 k = k + 1
             }
         } else {
@@ -77,9 +79,13 @@ fn main(): i32 {
     }
 
     if delete_mode {
-        // Bulk delete via str_delete (O(n), C-level presence table) instead of
-        // the per-char str_char_at loop (the 4.7x Linux gap). Byte-identical.
-        let result: String = str_delete(s, set1)
+        // -dc: delete the COMPLEMENT of set1 (keep only set1 chars). -d: delete set1.
+        let mut result: String = ""
+        if complement {
+            result = str_keep(s, set1)
+        } else {
+            result = str_delete(s, set1)
+        }
         if squeeze_mode {
             squeeze(result, set1)
         } else {
@@ -89,7 +95,12 @@ fn main(): i32 {
         if str_len(set2) == 0 {
             set2 = set1
         }
-        let result: String = str_translate(s, set1, set2)
+        let mut result: String = ""
+        if complement {
+            result = str_translate_complement(s, set1, set2)
+        } else {
+            result = str_translate(s, set1, set2)
+        }
         if squeeze_mode {
             squeeze(result, set2)
         } else {
