@@ -149,6 +149,9 @@ fn main(): i32 {
         }
         merge_sort(lines, tmp, count, reverse, numeric)
     }
+    // Buffer output (one write) — per-line print_raw is N syscalls, on top of
+    // the merge-sort work.
+    sb_new()
     let mut j: i32 = 0
     while j < count {
         if unique {
@@ -159,9 +162,10 @@ fn main(): i32 {
                 }
             }
         }
-        print_raw(lines[j])
-        print_raw("\n")
+        sb_push(lines[j])
+        sb_push("\n")
         j = j + 1
     }
+    print_raw(sb_str())
     return 0
 }
