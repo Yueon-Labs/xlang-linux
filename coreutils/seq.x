@@ -59,19 +59,34 @@ fn main(): i32 {
             return 1
         }
         let mut i: f64 = first
+        let mut cnt: i32 = 0
+        sb_new()
         if step > 0.0 {
             while i <= last {
-                print_raw(float_to_str(i))
-                print_raw("\n")
+                sb_push(float_to_str(i))
+                sb_push("\n")
+                cnt = cnt + 1
+                if cnt >= 16384 {
+                    print_raw(sb_str())
+                    sb_new()
+                    cnt = 0
+                }
                 i = i + step
             }
         } else {
             while i >= last {
-                print_raw(float_to_str(i))
-                print_raw("\n")
+                sb_push(float_to_str(i))
+                sb_push("\n")
+                cnt = cnt + 1
+                if cnt >= 16384 {
+                    print_raw(sb_str())
+                    sb_new()
+                    cnt = 0
+                }
                 i = i + step
             }
         }
+        print_raw(sb_str())
     } else {
         let mut first: i32 = 1
         let mut step: i32 = 1
@@ -100,27 +115,42 @@ fn main(): i32 {
             if wl > width { width = wl }
         }
         let mut i: i32 = first
+        let mut cnt: i32 = 0
+        sb_new()
         if step > 0 {
             while i <= last {
                 if want_w == 1 {
-                    print_raw(pad_zero(i, width))
+                    sb_push(pad_zero(i, width))
                 } else {
-                    print_raw(int_to_str(i))
+                    sb_push(int_to_str(i))
                 }
-                print_raw("\n")
+                sb_push("\n")
+                cnt = cnt + 1
+                if cnt >= 16384 {
+                    print_raw(sb_str())
+                    sb_new()
+                    cnt = 0
+                }
                 i = i + step
             }
         } else {
             while i >= last {
                 if want_w == 1 {
-                    print_raw(pad_zero(i, width))
+                    sb_push(pad_zero(i, width))
                 } else {
-                    print_raw(int_to_str(i))
+                    sb_push(int_to_str(i))
                 }
-                print_raw("\n")
+                sb_push("\n")
+                cnt = cnt + 1
+                if cnt >= 16384 {
+                    print_raw(sb_str())
+                    sb_new()
+                    cnt = 0
+                }
                 i = i + step
             }
         }
+        print_raw(sb_str())
     }
     return 0
 }
