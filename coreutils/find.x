@@ -1,15 +1,23 @@
 module main
 
-// find [dir] [-name GLOB] [-type f|d] [-maxdepth N] [-print]
+// find [dir] [-name GLOB] [-iname GLOB] [-type f|d] [-maxdepth N] [-print]
 //   -name GLOB    match the entry name against a wildcard glob (* and ?)
+//   -iname GLOB   like -name but case-insensitive
 //   -type f|d     file | directory
 //   -maxdepth N   don't descend below depth N (0 = start point only, like GNU)
 //   -print        (accepted, always prints — default action)
 // Pre-order recursive walk; default start dir is ".". GNU-style depth: the start
 // point is depth 0, its entries depth 1, etc.
 
+// Lowercase one ASCII char (A-Z → a-z); -iname uses this for case-insensitive glob.
+fn lower_char(c: i32): i32 {
+    if c >= 65 && c <= 90 { return c + 32 }
+    return c
+}
+
 // Wildcard match: '*' = any run, '?' = one char. Iterative with backtracking.
-fn glob_match(name: String, pat: String): i32 {
+// ign=1 → case-insensitive (for -iname).
+fn glob_match(name: String, pat: String, ign: i32): i32 {
     let nn: i32 = str_len(name)
     let pn: i32 = str_len(pat)
     let mut ni: i32 = 0
@@ -19,8 +27,12 @@ fn glob_match(name: String, pat: String): i32 {
     while ni < nn {
         let mut mc: i32 = 0
         if pi < pn {
-            let pc: i32 = str_char_at(pat, pi)
-            let nc: i32 = str_char_at(name, ni)
+            let mut pc: i32 = str_char_at(pat, pi)
+            let mut nc: i32 = str_char_at(name, ni)
+            if ign == 1 {
+                pc = lower_char(pc)
+                nc = lower_char(nc)
+            }
             if pc == nc { mc = 1 }
             if pc == 63 { mc = 1 }
         }
@@ -67,12 +79,12 @@ fn type_ok(isd: i32, typ: String): i32 {
     return 1
 }
 
-fn name_ok(name: String, namepat: String): i32 {
+fn name_ok(name: String, namepat: String, ign: i32): i32 {
     if str_len(namepat) == 0 { return 1 }
-    return glob_match(name, namepat)
+    return glob_match(name, namepat, ign)
 }
 
-fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: String): i32 {
+fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: String, ign: i32): i32 {
     let n: i32 = dir_count(dir)
     let mut i: i32 = 0
     let mut count: i32 = 0
@@ -90,14 +102,14 @@ fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: S
                     let path: String = str_concat(str_concat(dir, "/"), entry)
                     let isd: i32 = is_dir(path)
                     if type_ok(isd, typ) == 1 {
-                        if name_ok(entry, namepat) == 1 {
+                        if name_ok(entry, namepat, ign) == 1 {
                             print_raw(path)
                             print_raw("\n")
                             count = count + 1
                         }
                     }
                     if isd == 1 {
-                        count = count + find_walk(path, entry_depth, maxdepth, namepat, typ)
+                        count = count + find_walk(path, entry_depth, maxdepth, namepat, typ, ign)
                     }
                 }
             }
@@ -112,6 +124,7 @@ fn main(): i32 {
     let mut namepat: String = ""
     let mut typ: String = ""
     let mut maxdepth: i32 = -1
+    let mut ign: i32 = 0
 
     let mut i: i32 = 1
     if argc() >= 2 {
@@ -122,18 +135,29 @@ fn main(): i32 {
     }
     while i < argc() {
         if str_eq(argv(i), "-name") {
-            if i + 1 < argc() { namepat = argv(i + 1) }
+            if i + 1 < argc() {
+                namepat = argv(i + 1)
+                ign = 0
+            }
             i = i + 2
         } else {
-            if str_eq(argv(i), "-type") {
-                if i + 1 < argc() { typ = argv(i + 1) }
+            if str_eq(argv(i), "-iname") {
+                if i + 1 < argc() {
+                    namepat = argv(i + 1)
+                    ign = 1
+                }
                 i = i + 2
             } else {
-                if str_eq(argv(i), "-maxdepth") {
-                    if i + 1 < argc() { maxdepth = str_to_int(argv(i + 1)) }
+                if str_eq(argv(i), "-type") {
+                    if i + 1 < argc() { typ = argv(i + 1) }
                     i = i + 2
                 } else {
-                    i = i + 1
+                    if str_eq(argv(i), "-maxdepth") {
+                        if i + 1 < argc() { maxdepth = str_to_int(argv(i + 1)) }
+                        i = i + 2
+                    } else {
+                        i = i + 1
+                    }
                 }
             }
         }
@@ -142,11 +166,11 @@ fn main(): i32 {
     // Print the start point itself if it passes the filters (GNU behavior).
     let start_isd: i32 = is_dir(start)
     if type_ok(start_isd, typ) == 1 {
-        if name_ok(start, namepat) == 1 {
+        if name_ok(start, namepat, ign) == 1 {
             print_raw(start)
             print_raw("\n")
         }
     }
-    find_walk(start, 0, maxdepth, namepat, typ)
+    find_walk(start, 0, maxdepth, namepat, typ, ign)
     return 0
 }
