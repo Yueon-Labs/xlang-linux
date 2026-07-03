@@ -153,9 +153,8 @@ fn main(): i32 {
     let mut numeric: bool = false
     let mut unique: bool = false
     let mut file: String = ""
-    let mut has_key: i32 = 0
-    let mut key_lo: i32 = 1
-    let mut key_hi: i32 = 0
+    let key_los: Vec<i32> = vec_new()
+    let key_his: Vec<i32> = vec_new()
     let mut use_ws: i32 = 1
     let mut delim: i32 = 32
     let mut i: i32 = 1
@@ -166,26 +165,24 @@ fn main(): i32 {
                 let spec: String = argv(i + 1)
                 let comma: i32 = str_find(spec, ",")
                 if comma < 0 {
-                    key_lo = str_to_int(spec)
-                    key_hi = 0
+                    key_los.push(str_to_int(spec))
+                    key_his.push(0)
                 } else {
-                    key_lo = str_to_int(str_slice(spec, 0, comma))
-                    key_hi = str_to_int(str_slice(spec, comma + 1, str_len(spec)))
+                    key_los.push(str_to_int(str_slice(spec, 0, comma)))
+                    key_his.push(str_to_int(str_slice(spec, comma + 1, str_len(spec))))
                 }
-                has_key = 1
                 i = i + 1
             }
         } else if str_starts_with(a, "-k") {
             let spec: String = str_slice(a, 2, str_len(a))
             let comma: i32 = str_find(spec, ",")
             if comma < 0 {
-                key_lo = str_to_int(spec)
-                key_hi = 0
+                key_los.push(str_to_int(spec))
+                key_his.push(0)
             } else {
-                key_lo = str_to_int(str_slice(spec, 0, comma))
-                key_hi = str_to_int(str_slice(spec, comma + 1, str_len(spec)))
+                key_los.push(str_to_int(str_slice(spec, 0, comma)))
+                key_his.push(str_to_int(str_slice(spec, comma + 1, str_len(spec))))
             }
-            has_key = 1
         } else if str_eq(a, "-t") {
             if i + 1 < argc() {
                 delim = str_char_at(argv(i + 1), 0)
@@ -237,21 +234,34 @@ fn main(): i32 {
         lines.push(str_slice(s, start, n))
     }
     let count: i32 = vec_len(lines)
-    // For -k: Schwartzian transform — prepend the key + separator, sort, strip.
+    // For -k: Schwartzian transform — prepend key(s) + double separator, sort, strip.
+    let nkeys: i32 = vec_len(key_los)
     let mut sort_lines: Vec<String> = vec_new()
     let mut has_sep: i32 = 0
-    if has_key == 1 {
-        let khi: i32 = key_hi
-        let mut actual_hi: i32 = khi
-        if actual_hi < key_lo {
-            actual_hi = key_lo
-        }
-        let sep_str: String = str_concat(chr(1), chr(1))
+    if nkeys > 0 {
+        let dsep: String = str_concat(chr(1), chr(1))
+        let ssep: String = chr(1)
         has_sep = 1
         let mut idx: i32 = 0
         while idx < count {
-            let key: String = extract_key(lines[idx], key_lo, actual_hi, use_ws, delim)
-            sort_lines.push(str_concat(str_concat(key, sep_str), lines[idx]))
+            let mut khi0: i32 = key_his[0]
+            if khi0 < key_los[0] {
+                khi0 = key_los[0]
+            }
+            let mut aug: String = extract_key(lines[idx], key_los[0], khi0, use_ws, delim)
+            let mut ki: i32 = 1
+            while ki < nkeys {
+                aug = str_concat(aug, ssep)
+                let mut khii: i32 = key_his[ki]
+                if khii < key_los[ki] {
+                    khii = key_los[ki]
+                }
+                aug = str_concat(aug, extract_key(lines[idx], key_los[ki], khii, use_ws, delim))
+                ki = ki + 1
+            }
+            aug = str_concat(aug, dsep)
+            aug = str_concat(aug, lines[idx])
+            sort_lines.push(aug)
             idx = idx + 1
         }
     } else {
