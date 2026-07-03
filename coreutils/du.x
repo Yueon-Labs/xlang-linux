@@ -1,8 +1,10 @@
 module main
 
-// du [-s] [-b] [dir]... — disk usage (GNU du subset).
+// du [-s] [-h] [-k] [-b] [dir]... — disk usage (GNU du subset).
 //   -s   summary only (one total per dir, no per-subdir breakdown)
-//   -b   bytes (default; the only unit)
+//   -h   human-readable (K, M, G)
+//   -k    kilobytes (1024-byte blocks)
+//   -b    bytes (default)
 // Recursive byte count via file_size (stat). Multiple dirs supported.
 
 fn du_dir(dir: String): i32 {
@@ -25,8 +27,38 @@ fn du_dir(dir: String): i32 {
     return total
 }
 
+fn human_size(bytes: i32): String {
+    if bytes >= 1073741824 {
+        let whole: i32 = bytes / 1073741824
+        let frac: i32 = (bytes % 1073741824) * 10 / 1073741824
+        if frac == 0 {
+            return str_concat(int_to_str(whole), "G")
+        }
+        return str_concat(str_concat(str_concat(int_to_str(whole), "."), int_to_str(frac)), "G")
+    }
+    if bytes >= 1048576 {
+        let whole: i32 = bytes / 1048576
+        let frac: i32 = (bytes % 1048576) * 10 / 1048576
+        if frac == 0 {
+            return str_concat(int_to_str(whole), "M")
+        }
+        return str_concat(str_concat(str_concat(int_to_str(whole), "."), int_to_str(frac)), "M")
+    }
+    if bytes >= 1024 {
+        let whole: i32 = bytes / 1024
+        let frac: i32 = (bytes % 1024) * 10 / 1024
+        if frac == 0 {
+            return str_concat(int_to_str(whole), "K")
+        }
+        return str_concat(str_concat(str_concat(int_to_str(whole), "."), int_to_str(frac)), "K")
+    }
+    return str_concat(int_to_str(bytes), "")
+}
+
 fn main(): i32 {
     let mut summary: i32 = 0
+    let mut human: i32 = 0
+    let mut kilo: i32 = 0
     let dirs: Vec<String> = vec_new()
     let mut i: i32 = 1
     while i < argc() {
@@ -35,8 +67,11 @@ fn main(): i32 {
             if str_char_at(a, 0) == 45 {
                 let mut j: i32 = 1
                 while j < str_len(a) {
-                    if str_char_at(a, j) == 115 { summary = 1 }
-                    if str_char_at(a, j) == 98 { summary = 0 }
+                    let c: i32 = str_char_at(a, j)
+                    if c == 115 { summary = 1 }
+                    if c == 98 { summary = 0 }
+                    if c == 104 { human = 1 }
+                    if c == 107 { kilo = 1 }
                     j = j + 1
                 }
                 i = i + 1
@@ -57,7 +92,15 @@ fn main(): i32 {
     while k < vec_len(dirs) {
         let d: String = dirs[k]
         let total: i32 = du_dir(d)
-        print_raw(int_to_str(total))
+        let mut display: i32 = total
+        if kilo == 1 {
+            display = (total + 1023) / 1024
+        }
+        if human == 1 {
+            print_raw(human_size(total))
+        } else {
+            print_raw(int_to_str(display))
+        }
         print_raw("\t")
         print_raw(d)
         print_raw("\n")
