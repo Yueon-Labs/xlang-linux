@@ -2,23 +2,6 @@ module main
 
 // shuf [-n N] [file] — randomly permute lines (like GNU shuf, with optional
 // -n N to output only N lines). Fisher-Yates shuffle. stdin if no file.
-fn split_lines(s: String): Vec<String> {
-    let lines: Vec<String> = vec_new()
-    let n: i32 = str_len(s)
-    let mut start: i32 = 0
-    let mut i: i32 = 0
-    while i < n {
-        if str_char_at(s, i) == 10 {
-            lines.push(str_slice(s, start, i))
-            start = i + 1
-        }
-        i += 1
-    }
-    if start < n {
-        lines.push(str_slice(s, start, n))
-    }
-    return lines
-}
 
 fn main(): i32 {
     random_seed()
@@ -39,7 +22,8 @@ fn main(): i32 {
             s = read_stdin()
         }
     }
-    let lines: Vec<String> = split_lines(s)
+    let lines: Vec<String> = str_split(str_trim(s), "
+")
     let n: i32 = vec_len(lines)
     if limit == 0 {
         limit = n

@@ -6,23 +6,6 @@ module main
 // Multiple files supported. Vec<Vec<String>> not supported, so uses a flat
 // approach: all lines concatenated, with per-file start/count arrays.
 
-fn split_lines(s: String): Vec<String> {
-    let lines: Vec<String> = vec_new()
-    let n: i32 = str_len(s)
-    let mut start: i32 = 0
-    let mut i: i32 = 0
-    while i < n {
-        if str_char_at(s, i) == 10 {
-            lines.push(str_slice(s, start, i))
-            start = i + 1
-        }
-        i = i + 1
-    }
-    if start < n {
-        lines.push(str_slice(s, start, n))
-    }
-    return lines
-}
 
 fn main(): i32 {
     let mut delims: String = "\t"
@@ -67,7 +50,8 @@ fn main(): i32 {
     let file_count: Vec<i32> = vec_new()
     let mut fi: i32 = 0
     while fi < nf {
-        let lines: Vec<String> = split_lines(read_file(files[fi]))
+        let lines: Vec<String> = str_split(str_trim(read_file(files[fi])), "
+")
         let ln: i32 = vec_len(lines)
         file_start.push(vec_len(all_lines))
         file_count.push(ln)

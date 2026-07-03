@@ -3,23 +3,6 @@ module main
 // comm [-123] <file1> <file2> — compare two sorted files line by line (GNU comm).
 // Column 1: lines only in file1. Column 2: only in file2. Column 3: in both.
 // -1 suppress col 1, -2 suppress col 2, -3 suppress col 3.
-fn split_lines(s: String): Vec<String> {
-    let lines: Vec<String> = vec_new()
-    let n: i32 = str_len(s)
-    let mut start: i32 = 0
-    let mut i: i32 = 0
-    while i < n {
-        if str_char_at(s, i) == 10 {
-            lines.push(str_slice(s, start, i))
-            start = i + 1
-        }
-        i += 1
-    }
-    if start < n {
-        lines.push(str_slice(s, start, n))
-    }
-    return lines
-}
 
 fn main(): i32 {
     let mut suppress1: i32 = 0
@@ -62,8 +45,10 @@ fn main(): i32 {
         print_str("usage: comm [-123] <file1> <file2>")
         return 1
     }
-    let a: Vec<String> = split_lines(read_file(fa))
-    let b: Vec<String> = split_lines(read_file(fb))
+    let ra: String = str_trim(read_file(fa))
+    let rb: String = str_trim(read_file(fb))
+    let a: Vec<String> = str_split(ra, "\n")
+    let b: Vec<String> = str_split(rb, "\n")
     let an: i32 = vec_len(a)
     let bn: i32 = vec_len(b)
     let mut i: i32 = 0
