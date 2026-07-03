@@ -113,6 +113,8 @@ fn main(): i32 {
         s = read_stdin()
     }
     let n: i32 = str_len(s)
+    // Buffer output (one write) — per-line/per-field print_raw is N syscalls.
+    sb_new()
     let mut lstart: i32 = 0
     let mut p: i32 = 0
     while p <= n {
@@ -129,9 +131,9 @@ fn main(): i32 {
                     b = ln
                 }
                 if a < b {
-                    print_raw(str_slice(line, a, b))
+                    sb_push(str_slice(line, a, b))
                 }
-                print_raw("\n")
+                sb_push("\n")
             } else {
                 let delim: i32 = str_char_at(delim_s, 0)
                 let fcount: i32 = vec_len(fields)
@@ -157,16 +159,17 @@ fn main(): i32 {
                 let mut oi: i32 = 0
                 while oi < oc {
                     if oi > 0 {
-                        print_raw(delim_s)
+                        sb_push(delim_s)
                     }
-                    print_raw(out[oi])
+                    sb_push(out[oi])
                     oi = oi + 1
                 }
-                print_raw("\n")
+                sb_push("\n")
             }
             lstart = p + 1
         }
         p = p + 1
     }
+    print_raw(sb_str())
     return 0
 }
