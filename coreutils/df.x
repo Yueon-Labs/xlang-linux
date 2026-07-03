@@ -79,7 +79,7 @@ fn main(): i32 {
                         let blocks: i32 = statvfs_field(mp, 2)
                         let bfree: i32 = statvfs_field(mp, 3)
                         if bsize > 0 && blocks > 0 {
-                            let frsize: i32 = bsize
+                            let mut frsize: i32 = bsize
                             let frsize_v: i32 = statvfs_field(mp, 1)
                             if frsize_v > 0 { frsize = frsize_v }
                             let kb_total: i32 = blocks * frsize / 1024
