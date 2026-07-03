@@ -24,7 +24,9 @@ cmp_case() {
   ge=$(cd "$gd" && csplit "$@" in 2>/dev/null); grc=$?
   local ok=1
   [ "$xrc" = "$grc" ] || ok=0
-  if [ "$xrc" = 0 ] && [ "$grc" = 0 ]; then [ "$xe" = "$ge" ] || ok=0; fi
+  # stdout always compared: byte counts match, and diagnostics (now on
+  # stderr via eprint_*) don't leak into stdout.
+  [ "$xe" = "$ge" ] || ok=0
   local xfiles gfiles
   xfiles=$(cd "$xd" && ls 2>/dev/null | grep -v '^in$' | sort | tr '\n' ' ')
   gfiles=$(cd "$gd" && ls 2>/dev/null | grep -v '^in$' | sort | tr '\n' ' ')

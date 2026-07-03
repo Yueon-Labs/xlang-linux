@@ -116,11 +116,11 @@ fn main(): i32 {
         }
 
         if str_len(reason) > 0 {
-            print_raw("pathchk: ")
-            print_raw(p)
-            print_raw(": ")
-            print_raw(reason)
-            print_raw("\n")
+            eprint_raw("pathchk: ")
+            eprint_raw(p)
+            eprint_raw(": ")
+            eprint_raw(reason)
+            eprint_raw("\n")
             rc = 1
         }
         pi = pi + 1
