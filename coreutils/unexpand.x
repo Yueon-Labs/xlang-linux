@@ -46,6 +46,9 @@ fn main(): i32 {
     } else {
         s = read_stdin()
     }
+    // Buffer the whole output and write once (per-char print_raw is N mallocs
+    // + N syscalls — the fold trap). Output size ~ input size, so safe.
+    sb_new()
     let n: i32 = str_len(s)
     let mut k: i32 = 0
     let mut col: i32 = 0
@@ -67,11 +70,11 @@ fn main(): i32 {
                 }
                 if do_convert == 1 {
                     if pending_spaces >= 2 {
-                        print_raw("\t")
+                        sb_push_char(9)
                     } else {
                         let mut sp: i32 = 0
                         while sp < pending_spaces {
-                            print_raw(" ")
+                            sb_push_char(32)
                             sp = sp + 1
                         }
                     }
@@ -81,11 +84,11 @@ fn main(): i32 {
         } else {
             let mut sp: i32 = 0
             while sp < pending_spaces {
-                print_raw(" ")
+                sb_push_char(32)
                 sp = sp + 1
             }
             pending_spaces = 0
-            print_raw(chr(c))
+            sb_push_char(c)
             if c == 10 {
                 col = 0
                 at_line_start = 1
@@ -98,8 +101,9 @@ fn main(): i32 {
     }
     let mut sp: i32 = 0
     while sp < pending_spaces {
-        print_raw(" ")
+        sb_push_char(32)
         sp = sp + 1
     }
+    print_raw(sb_str())
     return 0
 }

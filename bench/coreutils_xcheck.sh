@@ -59,6 +59,14 @@ ck_in seq    seq    "" 1 5
 ck_in seq    seq    "" 1 2 10
 ck_in seq    seq    "" -3 3
 ck   cat    cat    /tmp/xc_lines.txt
+# cate (cat -E) and showall (cat -A) are standalone xlang tools whose GNU
+# counterpart is `cat` WITH a flag — different args per side, so not via ck().
+for f in /tmp/xc_lines.txt /tmp/xc_tabs.txt /tmp/xc_text.txt; do
+  xo=$("${XB}/cate"    "$f" 2>/dev/null); go=$(cat -E "$f" 2>/dev/null)
+  if [ "$xo" = "$go" ]; then PASS=$((PASS+1)); else FAIL=$((FAIL+1)); FAILED_CASES+=("cate <$f"); echo "FAIL cate <$f"; fi
+  xo=$("${XB}/showall" "$f" 2>/dev/null); go=$(cat -A "$f" 2>/dev/null)
+  if [ "$xo" = "$go" ]; then PASS=$((PASS+1)); else FAIL=$((FAIL+1)); FAILED_CASES+=("showall <$f"); echo "FAIL showall <$f"; fi
+done
 ck   tac    tac    /tmp/xc_lines.txt
 ck   rev    rev    /tmp/xc_text.txt
 ck   head   head   /tmp/xc_lines.txt -3
