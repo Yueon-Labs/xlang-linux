@@ -53,23 +53,26 @@ fn main(): i32 {
     sb_new()
     let mut lineno: i32 = 1
     let mut start: i32 = 0
-    let mut k: i32 = 0
-    while k <= n {
-        let mut is_eol: bool = (k == n)
-        if k < n {
-            if str_char_at(s, k) == 10 { is_eol = true }
-        }
-        if is_eol {
-            if k > start {
+    // Bulk newline scan via str_find_from (strchr — fast on all platforms).
+    while true {
+        let nl: i32 = str_find_from(s, "\n", start)
+        if nl < 0 {
+            if start < n {
                 sb_push(pad_int(lineno, width))
                 sb_push(sep)
-                sb_push(str_slice(s, start, k))
+                sb_push(str_slice(s, start, n))
                 sb_push("\n")
             }
-            lineno = lineno + 1
-            start = k + 1
+            break
         }
-        k = k + 1
+        if nl > start {
+            sb_push(pad_int(lineno, width))
+            sb_push(sep)
+            sb_push(str_slice(s, start, nl))
+            sb_push("\n")
+        }
+        lineno = lineno + 1
+        start = nl + 1
     }
     print_raw(sb_str())
     return 0
