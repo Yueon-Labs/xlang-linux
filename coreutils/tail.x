@@ -1,7 +1,22 @@
 module main
 
-// tail [-n N | -N] [-v] [-q] [file...] — last N lines (default 10). Multiple
-// files get "==> file <==" headers (GNU style); -v always header, -q never.
+// tail [-n N | -N] [-c N] [-v] [-q] [file...] — last N lines (default 10) or,
+// with -c, the last N bytes. Multiple files get "==> file <==" headers.
+
+// Print the last `limit` bytes of path ("" = stdin).
+fn tail_file_bytes(path: String, limit: i32): i32 {
+    let mut s: String = ""
+    if str_len(path) > 0 {
+        s = read_file(path)
+    } else {
+        s = read_stdin()
+    }
+    let n: i32 = str_len(s)
+    let mut start: i32 = n - limit
+    if start < 0 { start = 0 }
+    print_raw(str_slice(s, start, n))
+    return 0
+}
 
 // Print the last `limit` lines of path ("" = stdin).
 fn tail_file(path: String, limit: i32): i32 {
@@ -40,6 +55,7 @@ fn tail_file(path: String, limit: i32): i32 {
 
 fn main(): i32 {
     let mut limit: i32 = 10
+    let mut byte_mode: i32 = 0
     let mut want_v: i32 = 0
     let mut want_q: i32 = 0
     let files: Vec<String> = vec_new()
@@ -49,7 +65,17 @@ fn main(): i32 {
         let c0: i32 = str_char_at(a, 0)
         if c0 == 45 {
             let la: i32 = str_len(a)
-            if str_char_at(a, 1) == 110 {
+            if str_char_at(a, 1) == 99 {
+                byte_mode = 1
+                if la > 2 {
+                    limit = str_to_int(str_slice(a, 2, la))
+                } else {
+                    i = i + 1
+                    if i < argc() {
+                        limit = str_to_int(argv(i))
+                    }
+                }
+            } else if str_char_at(a, 1) == 110 {
                 if la > 2 {
                     limit = str_to_int(str_slice(a, 2, la))
                 } else {
@@ -80,7 +106,11 @@ fn main(): i32 {
 
     let nf: i32 = vec_len(files)
     if nf == 0 {
-        tail_file("", limit)
+        if byte_mode == 1 {
+            tail_file_bytes("", limit)
+        } else {
+            tail_file("", limit)
+        }
         return 0
     }
     let mut show_header: i32 = 0
@@ -98,7 +128,11 @@ fn main(): i32 {
             print_raw(files[p])
             print_raw(" <==\n")
         }
-        tail_file(files[p], limit)
+        if byte_mode == 1 {
+            tail_file_bytes(files[p], limit)
+        } else {
+            tail_file(files[p], limit)
+        }
         p = p + 1
     }
     return 0

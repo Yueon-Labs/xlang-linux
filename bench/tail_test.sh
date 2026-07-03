@@ -11,6 +11,7 @@ T=/tmp/xtail
 ROOT="$(mktemp -d)"
 printf '1\n2\n3\n4\n5\n' > "$ROOT/a"
 printf 'x\ny\nz\n'       > "$ROOT/b"
+printf 'abcdefghij'      > "$ROOT/c"
 
 cmp_gnu() {
     local label="$1"; shift
@@ -27,6 +28,8 @@ cmp_gnu "multi default" a b
 cmp_gnu "multi -n 1"    -n 1 a b
 cmp_gnu "-v single"     -v a
 cmp_gnu "-q multi"      -q a b
+cmp_gnu "byte -c 4"     -c 4 c
+cmp_gnu "byte -c4"      -c4 c
 
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
