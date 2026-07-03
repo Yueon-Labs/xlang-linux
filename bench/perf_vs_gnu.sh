@@ -69,10 +69,16 @@ race() {
         e=$(secs "$xlc" "$inp"); xlbest=$(mn "$xlbest" "$e")
         e=$(secs "$gnuc" "$inp"); gbest=$(mn "$gbest" "$e")
     done
-    local ratio; ratio=$(awk "BEGIN{printf \"%.2f\", $xlbest/$gbest}")
-    local flag=""
-    awk "BEGIN{exit !($ratio >= 5)}" >/dev/null 2>&1 && flag="  <-- slow"
-    printf "  %-22s  %6.2fs  %6.2fs  %5.2fx%s\n" "$label" "$xlbest" "$gbest" "$ratio" "$flag"
+    # When GNU rounds to 0.00s the ratio is meaningless (and divides by zero);
+    # report both as sub-resolution instead.
+    if awk "BEGIN{exit !($gbest + 0 > 0.005)}" >/dev/null 2>&1; then
+        local ratio; ratio=$(awk "BEGIN{printf \"%.2f\", $xlbest/$gbest}")
+        local flag=""
+        awk "BEGIN{exit !($ratio + 0 >= 5)}" >/dev/null 2>&1 && flag="  <-- slow"
+        printf "  %-22s  %6.2fs  %6.2fs  %5.2fx%s\n" "$label" "$xlbest" "$gbest" "$ratio" "$flag"
+    else
+        printf "  %-22s  %6.2fs  %6.2fs    (sub-resolution)\n" "$label" "$xlbest" "$gbest"
+    fi
 }
 
 echo "=== xlang coreutils vs GNU @ ${N} lines  (best-of-${BEST}; xlang / GNU / ratio) ==="
