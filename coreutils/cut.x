@@ -119,8 +119,7 @@ fn main(): i32 {
     let mut p: i32 = 0
     while p <= n {
         if p == n || str_char_at(s, p) == 10 {
-            let line: String = str_slice(s, lstart, p)
-            let ln: i32 = str_len(line)
+            let ln: i32 = p - lstart
             if char_mode {
                 let mut a: i32 = cstart - 1
                 if a < 0 {
@@ -131,43 +130,45 @@ fn main(): i32 {
                     b = ln
                 }
                 if a < b {
-                    sb_push(str_slice(line, a, b))
+                    sb_push_slice(s, lstart + a, lstart + b)
                 }
                 sb_push("\n")
             } else {
+                // Scan fields within this line's byte range [lstart, p) in the
+                // single buffer s — emit matching fields directly to the sb via
+                // sb_push_slice (no per-line str_slice, no per-field Vec/malloc).
                 let fcount: i32 = vec_len(fields)
-                let out: Vec<String> = vec_new()
-                let mut fstart: i32 = 0
+                let mut first_out: i32 = 1
+                let mut fstart: i32 = lstart
                 let mut cur: i32 = 1
-                let mut q: i32 = 0
+                let mut q: i32 = lstart
                 while true {
-                    let d: i32 = str_find_from(line, delim_s, q)
-                    let mut fend: i32 = ln
-                    if d >= 0 {
+                    let d: i32 = str_find_from(s, delim_s, q)
+                    let mut fend: i32 = p
+                    let mut last: i32 = 0
+                    if d < 0 || d >= p {
+                        fend = p
+                        last = 1
+                    } else {
                         fend = d
                     }
                     let mut fi: i32 = 0
                     while fi < fcount {
                         if fields[fi] == cur {
-                            out.push(str_slice(line, fstart, fend))
+                            if first_out == 0 {
+                                sb_push(delim_s)
+                            }
+                            sb_push_slice(s, fstart, fend)
+                            first_out = 0
                         }
                         fi = fi + 1
                     }
-                    if d < 0 {
+                    if last == 1 {
                         break
                     }
                     cur = cur + 1
                     fstart = d + 1
                     q = d + 1
-                }
-                let oc: i32 = vec_len(out)
-                let mut oi: i32 = 0
-                while oi < oc {
-                    if oi > 0 {
-                        sb_push(delim_s)
-                    }
-                    sb_push(out[oi])
-                    oi = oi + 1
                 }
                 sb_push("\n")
             }
