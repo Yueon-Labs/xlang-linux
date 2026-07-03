@@ -18,6 +18,7 @@ printf 'x' > "$ROOT/a/mid.txt"
 printf 'x' > "$ROOT/a/b/deep.x"
 printf 'x' > "$ROOT/a/b/c/leaf.x"
 printf 'x' > "$ROOT/a/b/note.md"
+printf 'x' > "$ROOT/a/README.MD"
 
 # Compare xlang find vs GNU find (sorted), run from inside ROOT with start ".".
 cmp_gnu() {  # cmp_gnu <label> <args...>
@@ -38,6 +39,11 @@ cmp_gnu "-name *.x -type f" . -name "*.x" -type f
 cmp_gnu "-maxdepth 1"      . -maxdepth 1
 cmp_gnu "-maxdepth 2 -name *.x" . -maxdepth 2 -name "*.x"
 cmp_gnu "-type d -maxdepth 2" . -type d -maxdepth 2
+# -iname (case-insensitive): README.MD matches *.md only under -iname, not -name.
+cmp_gnu "-name *.md (README.MD excluded)" . -name "*.md"
+cmp_gnu "-iname *.md (README.MD included)" . -iname "*.md"
+cmp_gnu "-iname readme*" . -iname "readme*"
+cmp_gnu "-iname NOTE.md" . -iname "note.md"
 
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
