@@ -9,24 +9,8 @@ fn main(): i32 {
     } else {
         s = read_stdin()
     }
-    // Buffer the whole output and write once (per-char print_raw is N mallocs
-    // + N syscalls — the fold trap).
-    sb_new()
-    let n: i32 = str_len(s)
-    let mut i: i32 = 0
-    while i < n {
-        let c: i32 = str_char_at(s, i)
-        if c == 9 {
-            sb_push("^I")
-        } else {
-            if c == 10 {
-                sb_push("$\n")
-            } else {
-                sb_push_char(c)
-            }
-        }
-        i += 1
-    }
-    print_raw(sb_str())
+    // cat -A = show tabs (^I) AND line-ends ($). Bulk O(n) via cat_show
+    // (was a per-char str_char_at loop — the 5.8x Linux gap vs GNU cat -A).
+    print_raw(cat_show(s, 1, 1))
     return 0
 }
