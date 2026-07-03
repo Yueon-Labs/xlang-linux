@@ -9,23 +9,6 @@ module main
 //   -t C   single-char field separator (default: whitespace runs)
 //   -a 1|-a 2   also emit unpairable lines from that file
 
-fn split_lines(s: String): Vec<String> {
-    let lines: Vec<String> = vec_new()
-    let n: i32 = str_len(s)
-    let mut start: i32 = 0
-    let mut i: i32 = 0
-    while i < n {
-        if str_char_at(s, i) == 10 {
-            lines.push(str_slice(s, start, i))
-            start = i + 1
-        }
-        i += 1
-    }
-    if start < n {
-        lines.push(str_slice(s, start, n))
-    }
-    return lines
-}
 
 // Split a line into fields by a separator. use_ws=1 → runs of space/tab;
 // else split on the single sep_char.
@@ -143,8 +126,10 @@ fn main(): i32 {
     if use_ws == 0 {
         sep = chr(sep_char)
     }
-    let lines1: Vec<String> = split_lines(read_file(fa))
-    let lines2: Vec<String> = split_lines(read_file(fb))
+    let lines1: Vec<String> = str_split(read_file(fa), "
+")
+    let lines2: Vec<String> = str_split(read_file(fb), "
+")
     let n1: i32 = vec_len(lines1)
     let n2: i32 = vec_len(lines2)
     let mut i: i32 = 0
