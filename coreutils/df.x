@@ -48,7 +48,8 @@ fn main(): i32 {
                                 let used: i64 = total - avail
                                 let mut pct: i32 = 0
                                 if total > 0 {
-                                    pct = used * 100 / total
+                                    let used_i: i64 = used * 100 / total
+                                    pct = used_i & 0x7FFFFFFF
                                 }
                                 print_raw(format_size(total))
                                 print_raw("  ")
