@@ -77,29 +77,9 @@ fn main(): i32 {
     }
 
     if delete_mode {
-        let table: Vec<i32> = vec_new()
-        let mut k: i32 = 0
-        while k < 256 {
-            table.push(0)
-            k = k + 1
-        }
-        let sn: i32 = str_len(set1)
-        let mut j: i32 = 0
-        while j < sn {
-            table[str_char_at(set1, j)] = 1
-            j = j + 1
-        }
-        let n: i32 = str_len(s)
-        let mut p: i32 = 0
-        sb_new()
-        while p < n {
-            let c: i32 = str_char_at(s, p)
-            if table[c] == 0 {
-                sb_push_char(c)
-            }
-            p = p + 1
-        }
-        let result: String = str_slice(sb_str(), 0, str_len(sb_str()))
+        // Bulk delete via str_delete (O(n), C-level presence table) instead of
+        // the per-char str_char_at loop (the 4.7x Linux gap). Byte-identical.
+        let result: String = str_delete(s, set1)
         if squeeze_mode {
             squeeze(result, set1)
         } else {
