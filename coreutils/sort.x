@@ -1,10 +1,10 @@
 module main
 
-// sort [-r] [-n] [-u] [file] — sort lines lexicographically (default), numeric
-// (-n), reverse (-r), and/or unique (-u, suppress duplicate lines).
-// GNU-compatible flags.
-// Bottom-up merge sort: O(n log n) guaranteed, STABLE (matches GNU — equal keys
-// keep input order), and iterative (no recursion → no stack overflow).
+// sort [-r] [-n] [-u] [-k F[,F]] [-t DELIM] [file] — sort lines.
+//   -r reverse, -n numeric, -u unique (suppress duplicates)
+//   -k F[,F]  sort by field F (1-indexed) through F2 (default: end of line)
+//   -t DELIM  field delimiter (default: whitespace runs)
+// Bottom-up merge sort: O(n log n), stable.
 
 fn cmp3(a: String, b: String, numeric: bool): i32 {
     if numeric {
@@ -90,15 +90,112 @@ fn merge_sort(lines: Vec<String>, tmp: Vec<String>, count: i32, reverse: bool, n
     return 0
 }
 
+// Extract a sort key (fields field_lo through field_hi, 1-indexed) from a line.
+// use_ws=1 → whitespace-delimited fields; use_ws=0 → single-char delim.
+fn extract_key(line: String, field_lo: i32, field_hi: i32, use_ws: i32, delim: i32): String {
+    let n: i32 = str_len(line)
+    let mut field: i32 = 1
+    let mut i: i32 = 0
+    if use_ws == 1 {
+        while i < n {
+            let c: i32 = str_char_at(line, i)
+            if c == 32 || c == 9 {
+                i = i + 1
+            } else {
+                break
+            }
+        }
+    }
+    let mut key_start: i32 = n
+    let mut key_end: i32 = n
+    while field <= field_hi && i <= n {
+        if field >= field_lo {
+            if key_start == n {
+                key_start = i
+            }
+        }
+        while i < n {
+            let c: i32 = str_char_at(line, i)
+            if use_ws == 1 {
+                if c == 32 || c == 9 { break }
+            } else {
+                if c == delim { break }
+            }
+            i = i + 1
+        }
+        if field >= field_lo {
+            key_end = i
+        }
+        if use_ws == 1 {
+            while i < n {
+                let c: i32 = str_char_at(line, i)
+                if c == 32 || c == 9 {
+                    i = i + 1
+                } else {
+                    break
+                }
+            }
+        } else {
+            if i < n {
+                i = i + 1
+            }
+        }
+        field = field + 1
+    }
+    if key_start >= key_end {
+        return ""
+    }
+    return str_slice(line, key_start, key_end)
+}
+
 fn main(): i32 {
     let mut reverse: bool = false
     let mut numeric: bool = false
     let mut unique: bool = false
     let mut file: String = ""
+    let mut has_key: i32 = 0
+    let mut key_lo: i32 = 1
+    let mut key_hi: i32 = 0
+    let mut use_ws: i32 = 1
+    let mut delim: i32 = 32
     let mut i: i32 = 1
     while i < argc() {
         let a: String = argv(i)
-        if str_char_at(a, 0) == 45 {
+        if str_eq(a, "-k") {
+            if i + 1 < argc() {
+                let spec: String = argv(i + 1)
+                let comma: i32 = str_find(spec, ",")
+                if comma < 0 {
+                    key_lo = str_to_int(spec)
+                    key_hi = 0
+                } else {
+                    key_lo = str_to_int(str_slice(spec, 0, comma))
+                    key_hi = str_to_int(str_slice(spec, comma + 1, str_len(spec)))
+                }
+                has_key = 1
+                i = i + 1
+            }
+        } else if str_starts_with(a, "-k") {
+            let spec: String = str_slice(a, 2, str_len(a))
+            let comma: i32 = str_find(spec, ",")
+            if comma < 0 {
+                key_lo = str_to_int(spec)
+                key_hi = 0
+            } else {
+                key_lo = str_to_int(str_slice(spec, 0, comma))
+                key_hi = str_to_int(str_slice(spec, comma + 1, str_len(spec)))
+            }
+            has_key = 1
+        } else if str_eq(a, "-t") {
+            if i + 1 < argc() {
+                delim = str_char_at(argv(i + 1), 0)
+                use_ws = 0
+                i = i + 1
+            }
+        } else if str_starts_with(a, "-t") {
+            delim = str_char_at(a, 2)
+            use_ws = 0
+        } else if str_char_at(a, 0) == 45 {
             let la: i32 = str_len(a)
             let mut k: i32 = 1
             while k < la {
@@ -140,6 +237,26 @@ fn main(): i32 {
         lines.push(str_slice(s, start, n))
     }
     let count: i32 = vec_len(lines)
+    // For -k: Schwartzian transform — prepend the key + separator, sort, strip.
+    let mut sort_lines: Vec<String> = vec_new()
+    let mut has_sep: i32 = 0
+    if has_key == 1 {
+        let khi: i32 = key_hi
+        let mut actual_hi: i32 = khi
+        if actual_hi < key_lo {
+            actual_hi = key_lo
+        }
+        let sep_str: String = str_concat(chr(1), chr(1))
+        has_sep = 1
+        let mut idx: i32 = 0
+        while idx < count {
+            let key: String = extract_key(lines[idx], key_lo, actual_hi, use_ws, delim)
+            sort_lines.push(str_concat(str_concat(key, sep_str), lines[idx]))
+            idx = idx + 1
+        }
+    } else {
+        sort_lines = lines
+    }
     if count > 0 {
         let tmp: Vec<String> = vec_new()
         let mut z: i32 = 0
@@ -147,22 +264,42 @@ fn main(): i32 {
             tmp.push("")
             z = z + 1
         }
-        merge_sort(lines, tmp, count, reverse, numeric)
+        merge_sort(sort_lines, tmp, count, reverse, numeric)
     }
-    // Buffer output (one write) — per-line print_raw is N syscalls, on top of
-    // the merge-sort work.
+    // Buffer output (one write) — per-line print_raw is N syscalls.
     sb_new()
+    let sep_str: String = str_concat(chr(1), chr(1))
     let mut j: i32 = 0
     while j < count {
         if unique {
             if j > 0 {
-                if str_eq(lines[j], lines[j - 1]) {
-                    j = j + 1
-                    continue
+                if has_sep == 1 {
+                    let cur_k: i32 = str_find(sort_lines[j], sep_str)
+                    let prev_k: i32 = str_find(sort_lines[j - 1], sep_str)
+                    let ck: String = str_slice(sort_lines[j], 0, cur_k)
+                    let pk: String = str_slice(sort_lines[j - 1], 0, prev_k)
+                    if str_eq(ck, pk) {
+                        j = j + 1
+                        continue
+                    }
+                } else {
+                    if str_eq(sort_lines[j], sort_lines[j - 1]) {
+                        j = j + 1
+                        continue
+                    }
                 }
             }
         }
-        sb_push(lines[j])
+        if has_sep == 1 {
+            let sp: i32 = str_find(sort_lines[j], sep_str)
+            if sp >= 0 {
+                sb_push(str_slice(sort_lines[j], sp + 2, str_len(sort_lines[j])))
+            } else {
+                sb_push(sort_lines[j])
+            }
+        } else {
+            sb_push(sort_lines[j])
+        }
         sb_push("\n")
         j = j + 1
     }
