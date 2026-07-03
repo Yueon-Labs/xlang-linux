@@ -50,7 +50,7 @@ fn main(): i32 {
     let file_count: Vec<i32> = vec_new()
     let mut fi: i32 = 0
     while fi < nf {
-        let lines: Vec<String> = str_split(read_file(files[fi]), "
+        let lines: Vec<String> = str_split(str_trim(read_file(files[fi])), "
 ")
         let ln: i32 = vec_len(lines)
         file_start.push(vec_len(all_lines))

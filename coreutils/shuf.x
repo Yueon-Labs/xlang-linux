@@ -22,7 +22,7 @@ fn main(): i32 {
             s = read_stdin()
         }
     }
-    let lines: Vec<String> = str_split(s, "
+    let lines: Vec<String> = str_split(str_trim(s), "
 ")
     let n: i32 = vec_len(lines)
     if limit == 0 {

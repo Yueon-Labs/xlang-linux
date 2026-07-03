@@ -126,9 +126,9 @@ fn main(): i32 {
     if use_ws == 0 {
         sep = chr(sep_char)
     }
-    let lines1: Vec<String> = str_split(read_file(fa), "
+    let lines1: Vec<String> = str_split(str_trim(read_file(fa)), "
 ")
-    let lines2: Vec<String> = str_split(read_file(fb), "
+    let lines2: Vec<String> = str_split(str_trim(read_file(fb)), "
 ")
     let n1: i32 = vec_len(lines1)
     let n2: i32 = vec_len(lines2)

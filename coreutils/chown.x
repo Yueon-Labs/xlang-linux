@@ -16,7 +16,7 @@ fn lookup_user(name: String): i32 {
     if id >= 0 { return id }
     // Look up in /etc/passwd
     let pw: String = read_file("/etc/passwd")
-    let lines: Vec<String> = str_split(pw, "
+    let lines: Vec<String> = str_split(str_trim(pw), "
 ")
     let n: i32 = vec_len(lines)
     let mut i: i32 = 0
@@ -35,7 +35,7 @@ fn lookup_group(name: String): i32 {
     let id: i32 = parse_id(name)
     if id >= 0 { return id }
     let gr: String = read_file("/etc/group")
-    let lines: Vec<String> = str_split(gr, "
+    let lines: Vec<String> = str_split(str_trim(gr), "
 ")
     let n: i32 = vec_len(lines)
     let mut i: i32 = 0
