@@ -135,25 +135,30 @@ fn main(): i32 {
                 }
                 sb_push("\n")
             } else {
-                let delim: i32 = str_char_at(delim_s, 0)
                 let fcount: i32 = vec_len(fields)
                 let out: Vec<String> = vec_new()
                 let mut fstart: i32 = 0
                 let mut cur: i32 = 1
                 let mut q: i32 = 0
-                while q <= ln {
-                    if q == ln || str_char_at(line, q) == delim {
-                        let mut fi: i32 = 0
-                        while fi < fcount {
-                            if fields[fi] == cur {
-                                out.push(str_slice(line, fstart, q))
-                            }
-                            fi = fi + 1
-                        }
-                        cur = cur + 1
-                        fstart = q + 1
+                while true {
+                    let d: i32 = str_find_from(line, delim_s, q)
+                    let mut fend: i32 = ln
+                    if d >= 0 {
+                        fend = d
                     }
-                    q = q + 1
+                    let mut fi: i32 = 0
+                    while fi < fcount {
+                        if fields[fi] == cur {
+                            out.push(str_slice(line, fstart, fend))
+                        }
+                        fi = fi + 1
+                    }
+                    if d < 0 {
+                        break
+                    }
+                    cur = cur + 1
+                    fstart = d + 1
+                    q = d + 1
                 }
                 let oc: i32 = vec_len(out)
                 let mut oi: i32 = 0
