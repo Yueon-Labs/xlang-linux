@@ -32,11 +32,15 @@ fn main(): i32 {
         s = read_stdin()
     }
     let n: i32 = str_len(s)
+    // Buffer the whole output in a StringBuilder and write once. Writing per
+    // char (print_raw of a 1-byte str_slice) is N mallocs + N write syscalls —
+    // ~10× slower than GNU. The builder amortizes realloc, so this is O(n).
+    sb_new()
     let mut col: i32 = 0
     let mut k: i32 = 0
     while k < n {
         let c: i32 = str_char_at(s, k)
-        print_raw(str_slice(s, k, k + 1))
+        sb_push_char(c)
         if c == 10 {
             col = 0
         } else {
@@ -44,12 +48,13 @@ fn main(): i32 {
             if col >= width {
                 let next_is_nl: bool = (k + 1 < n) && (str_char_at(s, k + 1) == 10)
                 if !next_is_nl {
-                    print_raw("\n")
+                    sb_push_char(10)
                 }
                 col = 0
             }
         }
         k = k + 1
     }
+    print_raw(sb_str())
     return 0
 }
