@@ -48,7 +48,7 @@ fn main(): i32 {
                                 let used: i64 = total - avail
                                 let mut pct: i32 = 0
                                 if total > 0 {
-                                    pct = int_of_f64(int_to_f64(used) / int_to_f64(total) * 100.0)
+                                    pct = int_to_f64(int_to_f64(used) / int_to_f64(total) * 100.0)
                                 }
                                 print_raw(format_size(total))
                                 print_raw("  ")
