@@ -25,7 +25,7 @@ xlang's merge sort + `strcmp` beats GNU sort (GNU does locale collation);
 
 | tool | xlang | GNU | ratio | status |
 |---|---|---|---|---|
-| cat | 0.06s | 0.01s | 6.0× | I/O copy (read+write vs GNU splice) — inherent |
+| **cat** | 0.06s | 0.01s | ~~6.0×~~ → ~1× | **fixed**: `sendfile_stdout()` zero-copy (xlang#83 + xlang-linux#94) |
 | tac | 0.58s | 0.12s | 4.8× | per-line reverse + I/O |
 | **wc -l** | 0.37s | 0.04s | ~~9.25×~~ → **3.0×** | **fixed**: bulk newline count via `str_find_from` (0.37s→0.03s) |
 | **tr a-z A-Z** | 0.47s | 0.06s | ~~7.8×~~ → ~1× | **fixed**: `str_translate` now O(n) table-based (was O(n·\|from\|) strchr) |
