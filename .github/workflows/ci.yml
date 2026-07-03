@@ -111,3 +111,9 @@ jobs:
       - name: Method-call benchmark (impl methods vs C)
         run: |
           bash bench/method_bench.sh /tmp/xlang/target/release/xlangc
+
+      # Enum VM benchmark: a stack bytecode VM (payload enums + match dispatch)
+      # vs a hand-written C tagged-union + switch.
+      - name: Enum-VM benchmark (payload enums vs C switch)
+        run: |
+          bash bench/vm_bench.sh /tmp/xlang/target/release/xlangc
