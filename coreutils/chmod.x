@@ -70,7 +70,7 @@ fn apply_symbolic(cur: i32, clause: String): i32 {
 
 fn main(): i32 {
     if argc() < 3 {
-        print_str("usage: chmod <mode> <file>...")
+        eprint_str("usage: chmod <mode> <file>...")
         return 1
     }
     let mode_str: String = argv(1)

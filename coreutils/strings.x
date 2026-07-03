@@ -31,7 +31,7 @@ fn main(): i32 {
         }
     }
     if str_len(file) == 0 {
-        print_str("usage: strings [-n LEN] <file>")
+        eprint_str("usage: strings [-n LEN] <file>")
         return 1
     }
     let fd: i32 = open_read(file)

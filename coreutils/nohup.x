@@ -6,7 +6,7 @@ module main
 
 fn main(): i32 {
     if argc() < 2 {
-        print_str("usage: nohup <command> [args...]\n")
+        eprint_str("usage: nohup <command> [args...]\n")
         return 1
     }
     // Ignore SIGHUP (signal 1).

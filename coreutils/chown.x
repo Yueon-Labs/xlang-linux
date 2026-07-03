@@ -88,7 +88,7 @@ fn main(): i32 {
         ai += 1
     }
     if have_owner == 0 || vec_len(files) == 0 {
-        print_str("usage: chown [-R] <owner>[:<group>] <file...>\n")
+        eprint_str("usage: chown [-R] <owner>[:<group>] <file...>\n")
         return 1
     }
     let colon: i32 = str_find(owner_spec, ":")

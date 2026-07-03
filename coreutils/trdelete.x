@@ -4,7 +4,7 @@ module main
 // Builds a 256-entry lookup table (O(1) per char) and emits via sb_push_char.
 fn main(): i32 {
     if argc() < 2 {
-        print_str("usage: trdelete <chars>")
+        eprint_str("usage: trdelete <chars>")
         return 1
     }
     let chars: String = argv(1)

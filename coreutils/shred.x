@@ -66,7 +66,7 @@ fn main(): i32 {
         ai += 1
     }
     if vec_len(files) == 0 {
-        print_str("usage: shred [-n N] [-u] [-z] <file...>\n")
+        eprint_str("usage: shred [-n N] [-u] [-z] <file...>\n")
         return 1
     }
     let nf: i32 = vec_len(files)

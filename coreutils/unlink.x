@@ -4,7 +4,7 @@ module main
 
 fn main(): i32 {
     if argc() < 2 {
-        print_str("usage: unlink <file>\n")
+        eprint_str("usage: unlink <file>\n")
         return 1
     }
     let path: String = argv(1)

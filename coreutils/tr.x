@@ -43,7 +43,7 @@ fn main(): i32 {
     let mut set2: String = ""
 
     if argc() < 2 {
-        print_str("usage: tr [-dsc] <set1> [set2] [file]")
+        eprint_str("usage: tr [-dsc] <set1> [set2] [file]")
         return 1
     }
 

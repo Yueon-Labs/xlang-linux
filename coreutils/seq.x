@@ -34,7 +34,7 @@ fn main(): i32 {
     }
     let np: i32 = vec_len(pos)
     if np == 0 {
-        print_str("usage: seq [-w] <last> | <first> <last> | <first> <step> <last>")
+        eprint_str("usage: seq [-w] <last> | <first> <last> | <first> <step> <last>")
         return 1
     }
 

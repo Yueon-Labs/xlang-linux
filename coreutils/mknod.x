@@ -5,7 +5,7 @@ module main
 
 fn main(): i32 {
     if argc() < 3 {
-        print_str("usage: mknod <name> <type> [major minor]\n")
+        eprint_str("usage: mknod <name> <type> [major minor]\n")
         return 1
     }
     let name: String = argv(1)

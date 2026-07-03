@@ -90,7 +90,7 @@ fn main(): i32 {
 
     let nf: i32 = vec_len(files)
     if nf < 2 {
-        print_str("usage: cp [-r] <src>... <dst>")
+        eprint_str("usage: cp [-r] <src>... <dst>")
         return 1
     }
 

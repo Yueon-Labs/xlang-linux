@@ -4,7 +4,7 @@ module main
 // ln (which creates symbolic links).
 fn main(): i32 {
     if argc() < 3 {
-        print_str("usage: link <existing> <new>")
+        eprint_str("usage: link <existing> <new>")
         return 1
     }
     return link_file(argv(1), argv(2))

@@ -90,7 +90,7 @@ fn worker(idx: i32, host: String, port: i32, req: String, duration: i32, tmpdir:
 
 fn main(): i32 {
     if argc() < 6 {
-        print_str("usage: xwrk <host> <port> <path> <duration_s> <concurrency>")
+        eprint_str("usage: xwrk <host> <port> <path> <duration_s> <concurrency>")
         return 1
     }
     let host: String = argv(1)

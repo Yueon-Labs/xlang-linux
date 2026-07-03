@@ -4,7 +4,7 @@ module main
 // Pairs with ln (which creates symlinks).
 fn main(): i32 {
     if argc() < 2 {
-        print_str("usage: readlink <path>")
+        eprint_str("usage: readlink <path>")
         return 1
     }
     let target: String = readlink(argv(1))

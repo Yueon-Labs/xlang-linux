@@ -45,7 +45,7 @@ fn lookup_group(name: String): i32 {
 
 fn main(): i32 {
     if argc() < 3 {
-        print_str("usage: chgrp <group> <file...>\n")
+        eprint_str("usage: chgrp <group> <file...>\n")
         return 1
     }
     let gname: String = argv(1)

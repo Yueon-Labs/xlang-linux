@@ -53,7 +53,7 @@ fn main(): i32 {
     }
     let nd: i32 = vec_len(dirs)
     if nd == 0 {
-        print_str("usage: mkdir [-p] <dir>...")
+        eprint_str("usage: mkdir [-p] <dir>...")
         return 1
     }
     let mut rc: i32 = 0

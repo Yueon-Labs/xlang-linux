@@ -7,7 +7,7 @@ module main
 
 fn main(): i32 {
     if argc() < 2 {
-        print_str("usage: stdbuf [-o0|-oL|-oS] ... <command>\n")
+        eprint_str("usage: stdbuf [-o0|-oL|-oS] ... <command>\n")
         return 1
     }
     let cmd_parts: Vec<String> = vec_new()
