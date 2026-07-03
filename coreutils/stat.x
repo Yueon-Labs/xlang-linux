@@ -5,7 +5,7 @@ module main
 // -c FORMAT: custom format with GNU specifiers:
 //   %n  name (path)    %s  size    %F  file type string
 //   %f  raw mode hex   %h  hard links  %u  uid  %g  gid
-//   %y  mtime (ctime)  %a  permissions octal
+//   %U  user name      %G  group name  %y  mtime  %a  permissions octal
 
 fn main(): i32 {
     let mut fmt: String = ""
@@ -71,7 +71,15 @@ fn main(): i32 {
                     if spec == 70 { print_raw(type_str) }
                     if spec == 104 { print_raw(int_to_str(nlink)) }
                     if spec == 117 { print_raw(int_to_str(uid)) }
+                    if spec == 85 {
+                        let un: String = uid_to_name(uid)
+                        if str_len(un) > 0 { print_raw(un) } else { print_raw(int_to_str(uid)) }
+                    }
                     if spec == 103 { print_raw(int_to_str(gid)) }
+                    if spec == 71 {
+                        let gn: String = gid_to_name(gid)
+                        if str_len(gn) > 0 { print_raw(gn) } else { print_raw(int_to_str(gid)) }
+                    }
                     if spec == 121 { print_raw(fmt_ctime(mtime)) }
                     if spec == 97 { print_raw(int_to_str(perm_octal)) }
                     if spec == 102 { print_raw(int_to_str(mode)) }
