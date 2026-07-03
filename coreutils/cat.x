@@ -102,9 +102,9 @@ fn main(): i32 {
     }
 
     let n: i32 = str_len(text)
-    // Fast path: no flags → copy the whole input in ONE write. Without this,
-    // plain cat still walks every line and print_raw's each (2 syscalls/line),
-    // ~3x slower than GNU cat's block read/write.
+    // Fast path: no flags → sendfile (zero-copy stdin→stdout on Linux, matching
+    // GNU cat's splice). sendfile_stdout returns -1 for pipe stdin or non-Linux,
+    // then we fall back to print_raw (one bulk write).
     let mut plain: i32 = 1
     if want_n == 1 { plain = 0 }
     if want_b == 1 { plain = 0 }
@@ -112,7 +112,9 @@ fn main(): i32 {
     if want_e == 1 { plain = 0 }
     if want_t == 1 { plain = 0 }
     if plain == 1 {
-        print_raw(text)
+        if sendfile_stdout() < 0 {
+            print_raw(text)
+        }
         return 0
     }
     let mut lineno: i32 = 0
