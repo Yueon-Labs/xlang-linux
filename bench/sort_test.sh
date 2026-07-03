@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Test sort.x vs GNU sort: default, -n, -r, -u, -ru, -nu, -nru.
+# Test sort.x vs GNU sort: default, -n, -r, -u, -k, -t.
 # Usage: sort_test.sh [path/to/xlangc]
 set -u
 XLANGC="${1:-xlangc}"
@@ -26,6 +26,38 @@ cmp_gnu "-u"       -u
 cmp_gnu "-nr"      -nr
 cmp_gnu "-nu"      -nu
 cmp_gnu "-nru"     -nru
+
+echo "== sort -k (key-field) vs GNU"
+KEYINPUT=$'b 3\na 1\nc 2\nb 1\na 3\n'
+
+ck() {
+    local label="$1"; shift
+    local a b
+    a=$(printf '%s' "$KEYINPUT" | "$S" "$@" 2>/dev/null)
+    b=$(printf '%s' "$KEYINPUT" | sort "$@" 2>/dev/null)
+    if [ "$a" = "$b" ]; then echo "  ok   $label"; PASS=$((PASS+1)); else echo "  FAIL $label"; echo "       x:[$(echo "$a"|tr '\n' '~')]"; echo "       g:[$(echo "$b"|tr '\n' '~')]"; FAIL=$((FAIL+1)); fi
+}
+
+ck "-k2"           -k2
+ck "-k2,2"         -k2,2
+ck "-k2,2 -n"      -k2,2 -n
+ck "-k2 -r"        -k2 -r
+ck "-k 2 (sep)"    -k 2
+
+echo "== sort -t (delimiter) vs GNU"
+CSVINPUT=$'x,3\ny,1\nz,2\nx,1\n'
+
+ckt() {
+    local label="$1"; shift
+    local a b
+    a=$(printf '%s' "$CSVINPUT" | "$S" "$@" 2>/dev/null)
+    b=$(printf '%s' "$CSVINPUT" | sort "$@" 2>/dev/null)
+    if [ "$a" = "$b" ]; then echo "  ok   $label"; PASS=$((PASS+1)); else echo "  FAIL $label"; echo "       x:[$(echo "$a"|tr '\n' '~')]"; echo "       g:[$(echo "$b"|tr '\n' '~')]"; FAIL=$((FAIL+1)); fi
+}
+
+ckt "-t, -k2"      -t, -k2
+ckt "-t, -k2,2 -n" -t, -k2,2 -n
+ckt "-t, -k1,1"    -t, -k1,1
 
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"

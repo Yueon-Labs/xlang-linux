@@ -78,6 +78,8 @@ ck   sort   sort   /tmp/xc_words.txt -r
 ck   uniq   uniq   /tmp/xc_words.txt
 ck_in tr     tr     "hello" aeiou XXXXX
 ck_in tr     tr     "hello world" -d aeiou
+ck_in tr     tr     "a1b2c3" -dc a-c
+ck_in tr     tr     "abc\n" -c a-c X
 ck   cut    cut    /tmp/xc_csv.txt -d, -f1
 ck   cut    cut    /tmp/xc_csv.txt -d, -f2,3
 ck   fold   fold   /tmp/xc_text.txt -w 5
