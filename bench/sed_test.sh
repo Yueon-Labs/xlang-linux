@@ -30,6 +30,12 @@ cmp_gnu "literal ; in repl"  's/a/A;B/'
 cmp_gnu "s with & (matched)" 's/banana/[&]/'
 cmp_gnu "s with & global"    's/a/[&]/g'
 
+echo "== sed regex substitution (. [...] ^ * agree with GNU BRE)"
+cmp_gnu "regex dot"     's/a./X/g'
+cmp_gnu "regex class"   's/[an]/Z/g'
+cmp_gnu "regex anchor"  's/^ba/X/'
+cmp_gnu "regex star"    's/ch*/Y/g'
+
 echo "== sed -i (in-place edit)"
 # -i writes a temp file and renames over the original (POSIX rename overwrites;
 # the Windows-native binary can't overwrite, so this is a Linux-CI test).
