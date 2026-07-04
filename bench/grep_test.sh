@@ -48,6 +48,11 @@ cmp_gnu "regex star"   -E 'app*' f1
 cmp_gnu "regex class"  -E '[a-z]+le' f1
 cmp_gnu "regex anchor" -E '^cherry' f1
 
+echo "== -o (only matching part)"
+cmp_gnu "o app"        -o app f1
+cmp_gnu "oE vowels"    -oE "[aeiou]" f1
+cmp_gnu "oE word"      -oE "[a-z]+" f1
+
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
 rm -rf "$ROOT"
