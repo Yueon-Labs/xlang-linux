@@ -15,51 +15,51 @@ module main
 // Read exactly one HTTP response (headers + Content-Length body) off a keepalive
 // connection, so the stream stays framed for the next request. Returns 1 if a
 // complete response was read, 0 if the connection closed first.
-fn read_one_response(sock: i32): i32 {
-    sb_new()
-    let mut total: i32 = 0
-    let mut hdrlen: i32 = -1
-    let mut cl: i32 = -1
-    let mut done: i32 = 0
-    while done == 0 {
-        let n: i32 = recv_n(sock)
-        if n == 0 { return 0 }
-        sb_push(rbuf_str())
-        total = total + n
-        if hdrlen < 0 {
-            let buf: String = sb_str()
-            let he: i32 = str_find(buf, "\r\n\r\n")
-            if he >= 0 {
-                hdrlen = he + 4
-                let k: i32 = str_find(buf, "Content-Length:")
-                if k >= 0 {
-                    if k < hdrlen {
-                        let blen: i32 = str_len(buf)
-                        let mut p: i32 = k + 16
-                        while p < blen {
-                            if str_char_at(buf, p) == 32 { p = p + 1 } else { break }
-                        }
-                        let mut ve: i32 = p
-                        while ve < blen {
-                            let c: i32 = str_char_at(buf, ve)
-                            if c == 13 { break }
-                            if c == 10 { break }
-                            ve = ve + 1
-                        }
-                        cl = str_to_int(str_slice(buf, p, ve))
+// Consume ONE complete HTTP response from the persistent buffer `buf` (appending
+// recv data as needed). Returns the LEFTOVER (bytes after that response —
+// critical when a fast server coalesces multiple responses into one recv, which
+// used to desync the stream and hang). st[0] = 1 if a response was consumed,
+// 0 on EOF before a complete response.
+fn read_one_response(sock: i32, buf: String, st: Vec<i32>): String {
+    let mut b: String = buf
+    while true {
+        let he: i32 = str_find(b, "\r\n\r\n")
+        if he >= 0 {
+            let hdrlen: i32 = he + 4
+            let blen: i32 = str_len(b)
+            let mut needed: i32 = hdrlen
+            let k: i32 = str_find(b, "Content-Length:")
+            if k >= 0 {
+                if k < hdrlen {
+                    let mut p: i32 = k + 16
+                    while p < blen {
+                        if str_char_at(b, p) == 32 { p = p + 1 } else { break }
                     }
+                    let mut ve: i32 = p
+                    while ve < blen {
+                        let c: i32 = str_char_at(b, ve)
+                        if c == 13 { break }
+                        if c == 10 { break }
+                        ve = ve + 1
+                    }
+                    let cl: i32 = str_to_int(str_slice(b, p, ve))
+                    if cl > 0 { needed = hdrlen + cl }
                 }
             }
-        }
-        if hdrlen >= 0 {
-            if cl >= 0 {
-                if total - hdrlen >= cl { done = 1 }
-            } else {
-                done = 1
+            if blen >= needed {
+                st[0] = 1
+                return str_slice(b, needed, blen)
             }
         }
+        let n: i32 = recv_n(sock)
+        if n == 0 {
+            st[0] = 0
+            return b
+        }
+        b = str_concat(b, rbuf_str())
     }
-    return 1
+    st[0] = 0
+    return b
 }
 
 fn worker(idx: i32, host: String, port: i32, req: String, duration: i32, tmpdir: String): i32 {
@@ -67,18 +67,24 @@ fn worker(idx: i32, host: String, port: i32, req: String, duration: i32, tmpdir:
     if sock >= 0 { set_nodelay(sock) }
     let start: i32 = now_s()
     let mut count: i32 = 0
+    let mut buf: String = ""
+    let st: Vec<i32> = vec_new()
+    st.push(0)
     while now_s() - start < duration {
         if sock < 0 {
             sock = tcp_connect(host, port)
             if sock >= 0 { set_nodelay(sock) }
+            buf = ""
         }
         if sock >= 0 {
             send_str(sock, req)
-            if read_one_response(sock) == 1 {
+            buf = read_one_response(sock, buf, st)
+            if st[0] == 1 {
                 count = count + 1
             } else {
                 close_fd(sock)
                 sock = -1
+                buf = ""
             }
         }
     }
