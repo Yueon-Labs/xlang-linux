@@ -53,6 +53,10 @@ echo "== find -size"
 cmp_gnu "size +1k"       . -type f -size +1k
 cmp_gnu "size -1k"       . -type f -size -1k
 
+echo "== find -mtime"
+cmp_gnu "mtime -1"       . -type f -mtime -1
+cmp_gnu "mtime +0"       . -type f -mtime +0
+
 echo "== find -delete (test on a temp copy)"
 DELETEDIR="$(mktemp -d)"
 printf 'temp1\n' > "$DELETEDIR/to_delete.x"

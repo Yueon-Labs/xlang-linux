@@ -11,6 +11,7 @@ module main
 //                    (e.g. -exec echo found {} ;). Tokenizes on whitespace, so
 //                    paths/args with spaces aren't supported.
 //   -delete          delete matched files (and empty directories)
+//   -mtime N         modified exactly N days ago; +N = more than, -N = less than
 // Pre-order recursive walk; default start dir is ".". GNU-style depth: the start
 // point is depth 0, its entries depth 1, etc.
 
@@ -108,6 +109,23 @@ fn size_ok(path: String, thr: i32, mode: i32, mult: i32): i32 {
     return 0
 }
 
+fn mtime_ok(path: String, thr: i32, mode: i32): i32 {
+    if thr < 0 { return 1 }
+    let mtime: i32 = stat_field(path, 5)
+    let now: i32 = time_now()
+    let age_days: i32 = (now - mtime) / 86400
+    if mode > 0 {
+        if age_days > thr { return 1 }
+        return 0
+    }
+    if mode < 0 {
+        if age_days < thr { return 1 }
+        return 0
+    }
+    if age_days == thr { return 1 }
+    return 0
+}
+
 // Run an -exec command template (`tpl`, with {} placeholders) for one match:
 // substitute {} → path, fork, the child exec's the command (or exits 127 on
 // failure), the parent waits — so find survives and runs -exec per match.
@@ -126,7 +144,7 @@ fn run_exec(path: String, tpl: String): i32 {
     return 0
 }
 
-fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: String, ign: i32, exec_tpl: String, have_exec: i32, size_thr: i32, size_mode: i32, size_mult: i32, want_delete: i32): i32 {
+fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: String, ign: i32, exec_tpl: String, have_exec: i32, size_thr: i32, size_mode: i32, size_mult: i32, want_delete: i32, mtime_thr: i32, mtime_mode: i32): i32 {
     let n: i32 = dir_count(dir)
     let mut i: i32 = 0
     let mut count: i32 = 0
@@ -146,6 +164,7 @@ fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: S
                     if type_ok(isd, typ) == 1 {
                         if name_ok(entry, namepat, ign) == 1 {
                             if size_ok(path, size_thr, size_mode, size_mult) == 1 {
+                            if mtime_ok(path, mtime_thr, mtime_mode) == 1 {
                                 if have_exec == 1 {
                                     run_exec(path, exec_tpl)
                                 } else {
@@ -158,10 +177,11 @@ fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: S
                                 }
                                 count = count + 1
                             }
+                            }
                         }
                     }
                     if isd == 1 {
-                        count = count + find_walk(path, entry_depth, maxdepth, namepat, typ, ign, exec_tpl, have_exec, size_thr, size_mode, size_mult, want_delete)
+                        count = count + find_walk(path, entry_depth, maxdepth, namepat, typ, ign, exec_tpl, have_exec, size_thr, size_mode, size_mult, want_delete, mtime_thr, mtime_mode)
                     }
                 }
             }
@@ -183,6 +203,8 @@ fn main(): i32 {
     let mut size_mode: i32 = 0
     let mut size_mult: i32 = 1
     let mut want_delete: i32 = 0
+    let mut mtime_thr: i32 = -1
+    let mut mtime_mode: i32 = 0
 
     let mut i: i32 = 1
     if argc() >= 2 {
@@ -234,6 +256,33 @@ fn main(): i32 {
                                 want_delete = 1
                                 i = i + 1
                             } else {
+                                if str_eq(argv(i), "-mtime") {
+                                    if i + 1 < argc() {
+                                        let spec: String = argv(i + 1)
+                                        let sl: i32 = str_len(spec)
+                                        let mut sp2: i32 = 0
+                                        mtime_mode = 0
+                                        if sl > 0 {
+                                            if str_char_at(spec, 0) == 43 { mtime_mode = 1
+                                            sp2 = 1 }
+                                            if str_char_at(spec, 0) == 45 { mtime_mode = 0 - 1
+                                            sp2 = 1 }
+                                        }
+                                        mtime_thr = 0
+                                        while sp2 < sl {
+                                            let c: i32 = str_char_at(spec, sp2)
+                                            if c >= 48 {
+                                                if c <= 57 {
+                                                    mtime_thr = mtime_thr * 10 + (c - 48)
+                                                }
+                                            }
+                                            if c < 48 { break }
+                                            if c > 57 { break }
+                                            sp2 = sp2 + 1
+                                        }
+                                    }
+                                    i = i + 2
+                                } else {
                                 if str_eq(argv(i), "-size") {
                                 if i + 1 < argc() {
                                     let spec: String = argv(i + 1)
@@ -276,6 +325,7 @@ fn main(): i32 {
                         }
                     }
                 }
+                    }
                 }
             }
         }
@@ -299,6 +349,6 @@ fn main(): i32 {
             }
         }
     }
-    find_walk(start, 0, maxdepth, namepat, typ, ign, exec_tpl, have_exec, size_thr, size_mode, size_mult, want_delete)
+    find_walk(start, 0, maxdepth, namepat, typ, ign, exec_tpl, have_exec, size_thr, size_mode, size_mult, want_delete, mtime_thr, mtime_mode)
     return 0
 }
