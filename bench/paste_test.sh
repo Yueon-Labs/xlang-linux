@@ -26,6 +26,10 @@ cmp_gnu "parallel"
 cmp_gnu "-d ,"       -d ,
 cmp_gnu "-s"         -s
 cmp_gnu "-s -d :"    -s -d :
+# Multi-char -d exercises the char-cycling fallback (dn>1), not the
+# str_join fast path — guards against regressing the rare path.
+cmp_gnu "-d xy"      -d xy
+cmp_gnu "-s -d xy"   -s -d xy
 
 echo "== 3 files"
 a3=$("$P" "$ROOT/f1" "$ROOT/f2" "$ROOT/f3" 2>/dev/null)

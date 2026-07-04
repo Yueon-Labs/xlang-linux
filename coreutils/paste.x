@@ -70,14 +70,27 @@ fn main(): i32 {
         while f < nf {
             let ln: i32 = file_count[f]
             let base: i32 = file_start[f]
-            let mut k: i32 = 0
-            while k < ln {
-                if k > 0 {
-                    let dc: i32 = str_char_at(delims, (k - 1) % dn)
-                    print_raw(chr(dc))
+            // Single-delimiter fast path: str_join the whole file's lines in
+            // one pass (one malloc + one write) instead of ~2*ln print_raw
+            // syscalls. Multi-char -d falls back to char-cycling below.
+            if dn == 1 {
+                let cells: Vec<String> = vec_new()
+                let mut k: i32 = 0
+                while k < ln {
+                    cells.push(all_lines[base + k])
+                    k = k + 1
                 }
-                print_raw(all_lines[base + k])
-                k = k + 1
+                print_raw(str_join(cells, delims))
+            } else {
+                let mut k: i32 = 0
+                while k < ln {
+                    if k > 0 {
+                        let dc: i32 = str_char_at(delims, (k - 1) % dn)
+                        print_raw(chr(dc))
+                    }
+                    print_raw(all_lines[base + k])
+                    k = k + 1
+                }
             }
             print_raw("\n")
             f = f + 1
@@ -89,22 +102,32 @@ fn main(): i32 {
             if file_count[f] > max_lines { max_lines = file_count[f] }
             f = f + 1
         }
+        // Buffer the whole merged output in one StringBuilder, then a single
+        // write. The per-row Vec<String> + str_join allocation cost ~N mallocs
+        // on wide input; sb_push appends into one growing buffer (amortized
+        // cheap) and batches every newline into one syscall.
+        sb_new()
         let mut row: i32 = 0
         while row < max_lines {
             let mut col: i32 = 0
             while col < nf {
                 if col > 0 {
-                    let dc: i32 = str_char_at(delims, (col - 1) % dn)
-                    print_raw(chr(dc))
+                    if dn == 1 {
+                        sb_push(delims)
+                    } else {
+                        let dc: i32 = str_char_at(delims, (col - 1) % dn)
+                        sb_push(chr(dc))
+                    }
                 }
                 if row < file_count[col] {
-                    print_raw(all_lines[file_start[col] + row])
+                    sb_push(all_lines[file_start[col] + row])
                 }
                 col = col + 1
             }
-            print_raw("\n")
+            sb_push("\n")
             row = row + 1
         }
+        print_raw(sb_str())
     }
     return 0
 }

@@ -106,6 +106,12 @@ race "expand"       build/perf_tab.txt    "$B/expand"         "expand"
 race "unexpand -a"  build/perf_in.txt     "$B/unexpand -a"    "unexpand -a"
 race "cate (cat -E)"   build/perf_in.txt  "$B/cate"           "cat -E"
 race "showall (cat -A)" build/perf_in.txt "$B/showall"        "cat -A"
+# paste -s merges all stdin lines into one tab-separated line (serial mode,
+# single-char delim → str_join fast path: one join + one write vs ~2N writes).
+race "paste -s"       build/perf_in.txt  "$B/paste -s"       "paste -s"
+race "paste -s -d,"   build/perf_in.txt  "$B/paste -s -d ,"  "paste -s -d ,"
+# Parallel paste needs file args (not stdin); feed the same input twice.
+race "paste a b"      build/perf_in.txt  "$B/paste build/perf_in.txt build/perf_in.txt" "paste build/perf_in.txt build/perf_in.txt"
 # seq generates its own output (ignores stdin); feed input only for the harness.
 race "seq 1 200000"   build/perf_in.txt "$B/seq 1 200000"    "seq 1 200000"
 echo "=== done ==="
