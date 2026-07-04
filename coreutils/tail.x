@@ -5,12 +5,7 @@ module main
 
 // Print the last `limit` bytes of path ("" = stdin).
 fn tail_file_bytes(path: String, limit: i32): i32 {
-    let mut s: String = ""
-    if str_len(path) > 0 {
-        s = read_file(path)
-    } else {
-        s = read_stdin()
-    }
+    let s: String = if str_len(path) > 0 { read_file(path) } else { read_stdin() }
     let n: i32 = str_len(s)
     let mut start: i32 = n - limit
     if start < 0 { start = 0 }
@@ -20,12 +15,7 @@ fn tail_file_bytes(path: String, limit: i32): i32 {
 
 // Print the last `limit` lines of path ("" = stdin).
 fn tail_file(path: String, limit: i32): i32 {
-    let mut s: String = ""
-    if str_len(path) > 0 {
-        s = read_file(path)
-    } else {
-        s = read_stdin()
-    }
+    let s: String = if str_len(path) > 0 { read_file(path) } else { read_stdin() }
     let n: i32 = str_len(s)
     let lines: Vec<String> = vec_new()
     let mut start: i32 = 0
