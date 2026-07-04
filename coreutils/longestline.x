@@ -3,12 +3,7 @@ module main
 // longestline [file] — print the length of the longest line (like `wc -L`).
 // stdin if no file.
 fn main(): i32 {
-    let mut s: String = ""
-    if argc() >= 2 {
-        s = read_file(argv(1))
-    } else {
-        s = read_stdin()
-    }
+    let s: String = if argc() >= 2 { read_file(argv(1)) } else { read_stdin() }
     let n: i32 = str_len(s)
     let mut max: i32 = 0
     let mut cur: i32 = 0

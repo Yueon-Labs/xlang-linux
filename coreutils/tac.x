@@ -8,12 +8,7 @@ module main
 // Output is byte-identical to the previous (Vec-based) implementation.
 
 fn main(): i32 {
-    let mut s: String = ""
-    if argc() >= 2 {
-        s = read_file(argv(1))
-    } else {
-        s = read_stdin()
-    }
+    let s: String = if argc() >= 2 { read_file(argv(1)) } else { read_stdin() }
     let n: i32 = str_len(s)
     if n == 0 {
         return 0

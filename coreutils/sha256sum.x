@@ -8,12 +8,7 @@ fn main(): i32 {
     if argc() >= 2 {
         file = argv(1)
     }
-    let mut s: String = ""
-    if str_len(file) > 0 {
-        s = read_file(file)
-    } else {
-        s = read_stdin()
-    }
+    let s: String = if str_len(file) > 0 { read_file(file) } else { read_stdin() }
     print_raw(sha256_hex(s))
     print_raw("  ")
     if str_len(file) > 0 {
