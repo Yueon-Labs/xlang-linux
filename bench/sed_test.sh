@@ -36,6 +36,11 @@ cmp_gnu "regex class"   's/[an]/Z/g'
 cmp_gnu "regex anchor"  's/^ba/X/'
 cmp_gnu "regex star"    's/ch*/Y/g'
 
+echo "== sed = (line numbers) and q (quit)"
+cmp_gnu "= line nums"   '='
+cmp_gnu "3q quit"       '3q'
+cmp_gnu "2,3d + ="      '2,3d;='
+
 echo "== sed -i (in-place edit)"
 # -i writes a temp file and renames over the original (POSIX rename overwrites;
 # the Windows-native binary can't overwrite, so this is a Linux-CI test).

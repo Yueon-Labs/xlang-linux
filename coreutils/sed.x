@@ -222,6 +222,7 @@ fn main(): i32 {
                 lineno = lineno + 1
                 let mut cur: String = str_slice(text, start, k)
                 let mut deleted: i32 = 0
+                let mut quit: i32 = 0
                 let mut c: i32 = 0
                 while c < ncmds {
                     let cmd: SedCmd = cmds[c]
@@ -239,6 +240,18 @@ fn main(): i32 {
                                 print_raw("\n")
                             }
                         }
+                        if cmd.op == 61 {
+                            if in_place == 1 {
+                                out_lines.push(int_to_str(lineno))
+                                out_lines.push("\n")
+                            } else {
+                                print_raw(int_to_str(lineno))
+                                print_raw("\n")
+                            }
+                        }
+                        if cmd.op == 113 {
+                            quit = 1
+                        }
                     }
                     if deleted == 1 { c = ncmds } else { c = c + 1 }
                 }
@@ -252,6 +265,9 @@ fn main(): i32 {
                             print_raw("\n")
                         }
                     }
+                }
+                if quit == 1 {
+                    break
                 }
             }
             start = k + 1
