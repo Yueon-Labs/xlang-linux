@@ -42,6 +42,12 @@ cmp_gnu "multi-file" apple f1 sub/f2
 cmp_gnu "-r"         -r apple .
 cmp_gnu "-rn"        -rn apple .
 
+echo "== regex (ERE; xlang is always ERE, GNU via -E)"
+cmp_gnu "regex dot"    -E 'ap.le' f1
+cmp_gnu "regex star"   -E 'app*' f1
+cmp_gnu "regex class"  -E '[a-z]+le' f1
+cmp_gnu "regex anchor" -E '^cherry' f1
+
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
 rm -rf "$ROOT"
