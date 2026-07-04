@@ -53,6 +53,10 @@ cmp_gnu "o app"        -o app f1
 cmp_gnu "oE vowels"    -oE "[aeiou]" f1
 cmp_gnu "oE word"      -oE "[a-z]+" f1
 
+echo "== -l (files with matches)"
+cmp_gnu "l apple"      -l apple f1 sub/f2
+cmp_gnu "rl apple"     -rl apple .
+
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
 rm -rf "$ROOT"
