@@ -45,6 +45,10 @@ cmp_gnu "-iname *.md (README.MD included)" . -iname "*.md"
 cmp_gnu "-iname readme*" . -iname "readme*"
 cmp_gnu "-iname NOTE.md" . -iname "note.md"
 
+echo "== find -exec (run a command per match; {} -> path)"
+cmp_gnu "exec echo {}"     . -name "*.x" -exec echo X {} ";"
+cmp_gnu "exec echo type-f" . -type f -exec echo F {} ";"
+
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
 rm -rf "$ROOT"

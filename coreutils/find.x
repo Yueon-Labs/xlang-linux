@@ -1,11 +1,15 @@
 module main
 
 // find [dir] [-name GLOB] [-iname GLOB] [-type f|d] [-maxdepth N] [-print]
+//            [-exec CMD ARGS... ;]
 //   -name GLOB    match the entry name against a wildcard glob (* and ?)
 //   -iname GLOB   like -name but case-insensitive
 //   -type f|d     file | directory
 //   -maxdepth N   don't descend below depth N (0 = start point only, like GNU)
 //   -print        (accepted, always prints — default action)
+//   -exec CMD ... ;  run CMD per match; {} in the args is replaced by the path
+//                    (e.g. -exec echo found {} ;). Tokenizes on whitespace, so
+//                    paths/args with spaces aren't supported.
 // Pre-order recursive walk; default start dir is ".". GNU-style depth: the start
 // point is depth 0, its entries depth 1, etc.
 
@@ -84,7 +88,25 @@ fn name_ok(name: String, namepat: String, ign: i32): i32 {
     return glob_match(name, namepat, ign)
 }
 
-fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: String, ign: i32): i32 {
+// Run an -exec command template (`tpl`, with {} placeholders) for one match:
+// substitute {} → path, fork, the child exec's the command (or exits 127 on
+// failure), the parent waits — so find survives and runs -exec per match.
+// (exec_split tokenizes on whitespace, so this is correct for commands/paths
+// without spaces.)
+fn run_exec(path: String, tpl: String): i32 {
+    let cmd: String = str_replace(tpl, "{}", path)
+    let pid: i32 = fork()
+    if pid == 0 {
+        exec_split(cmd)
+        exit(127)
+    }
+    if pid > 0 {
+        wait_child()
+    }
+    return 0
+}
+
+fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: String, ign: i32, exec_tpl: String, have_exec: i32): i32 {
     let n: i32 = dir_count(dir)
     let mut i: i32 = 0
     let mut count: i32 = 0
@@ -103,13 +125,17 @@ fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: S
                     let isd: i32 = is_dir(path)
                     if type_ok(isd, typ) == 1 {
                         if name_ok(entry, namepat, ign) == 1 {
-                            print_raw(path)
-                            print_raw("\n")
+                            if have_exec == 1 {
+                                run_exec(path, exec_tpl)
+                            } else {
+                                print_raw(path)
+                                print_raw("\n")
+                            }
                             count = count + 1
                         }
                     }
                     if isd == 1 {
-                        count = count + find_walk(path, entry_depth, maxdepth, namepat, typ, ign)
+                        count = count + find_walk(path, entry_depth, maxdepth, namepat, typ, ign, exec_tpl, have_exec)
                     }
                 }
             }
@@ -125,6 +151,8 @@ fn main(): i32 {
     let mut typ: String = ""
     let mut maxdepth: i32 = -1
     let mut ign: i32 = 0
+    let mut exec_tpl: String = ""
+    let mut have_exec: i32 = 0
 
     let mut i: i32 = 1
     if argc() >= 2 {
@@ -156,7 +184,26 @@ fn main(): i32 {
                         if i + 1 < argc() { maxdepth = str_to_int(argv(i + 1)) }
                         i = i + 2
                     } else {
-                        i = i + 1
+                        if str_eq(argv(i), "-exec") {
+                            // Collect the command + args (until ';'), joined with
+                            // spaces; {} placeholders are substituted per match.
+                            sb_new()
+                            let mut j: i32 = i + 1
+                            let mut firsta: i32 = 1
+                            while j < argc() {
+                                let ea: String = argv(j)
+                                if str_eq(ea, ";") { break }
+                                if firsta == 0 { sb_push(" ") }
+                                sb_push(ea)
+                                firsta = 0
+                                j = j + 1
+                            }
+                            exec_tpl = str_slice(sb_str(), 0, str_len(sb_str()))
+                            have_exec = 1
+                            i = j + 1
+                        } else {
+                            i = i + 1
+                        }
                     }
                 }
             }
@@ -167,10 +214,14 @@ fn main(): i32 {
     let start_isd: i32 = is_dir(start)
     if type_ok(start_isd, typ) == 1 {
         if name_ok(start, namepat, ign) == 1 {
-            print_raw(start)
-            print_raw("\n")
+            if have_exec == 1 {
+                run_exec(start, exec_tpl)
+            } else {
+                print_raw(start)
+                print_raw("\n")
+            }
         }
     }
-    find_walk(start, 0, maxdepth, namepat, typ, ign)
+    find_walk(start, 0, maxdepth, namepat, typ, ign, exec_tpl, have_exec)
     return 0
 }
