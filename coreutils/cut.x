@@ -119,6 +119,12 @@ fn main(): i32 {
     let mut p: i32 = 0
     while p <= n {
         if p == n || str_char_at(s, p) == 10 {
+            // GNU emits no extra blank line for the empty trailing segment
+            // after a final newline; genuine empty lines mid-file (lstart < p)
+            // are still emitted. (Without this, "a\nb\n" → "a\nb\n\n".)
+            if p == n && lstart == n {
+                lstart = p + 1
+            } else {
             let ln: i32 = p - lstart
             if char_mode {
                 let mut a: i32 = cstart - 1
@@ -173,6 +179,7 @@ fn main(): i32 {
                 sb_push("\n")
             }
             lstart = p + 1
+            }
         }
         p = p + 1
     }
