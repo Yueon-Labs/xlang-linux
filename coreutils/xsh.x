@@ -245,7 +245,7 @@ fn expand(s: String): String {
                         }
                         if j < n {
                             if str_char_at(s, j) == 41 {
-                                sb_push(int_to_str(eval_arith(str_slice(s, i + 3, j))))
+                                sb_push_i32(eval_arith(str_slice(s, i + 3, j)))
                                 i = j + 2
                                 continue
                             }

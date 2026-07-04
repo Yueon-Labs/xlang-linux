@@ -83,7 +83,7 @@ fn print_pass(fmt: String, arg_idx: i32): i32 {
                                 val = str_to_int(argv(ai))
                                 ai = ai + 1
                             }
-                            sb_push(int_to_str(val))
+                            sb_push_i32(val)
                             i = i + 2
                         } else {
                             if s == 120 {

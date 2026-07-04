@@ -102,7 +102,7 @@ fn main(): i32 {
     sb_push(u.host)
     if bodylen > 0 {
         sb_push("\r\nContent-Length: ")
-        sb_push(int_to_str(bodylen))
+        sb_push_i32(bodylen)
     }
     sb_push("\r\nConnection: close\r\nUser-Agent: xlang-httpget/1.0\r\n\r\n")
     send_str(sock, sb_str())

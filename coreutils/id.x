@@ -134,14 +134,14 @@ fn main(): i32 {
 
     sb_new()
     sb_push("uid=")
-    sb_push(int_to_str(uid))
+    sb_push_i32(uid)
     if str_len(username) > 0 {
         sb_push("(")
         sb_push(username)
         sb_push(")")
     }
     sb_push(" gid=")
-    sb_push(int_to_str(gid))
+    sb_push_i32(gid)
     let gname: String = lookup_group_name(gid)
     if str_len(gname) > 0 {
         sb_push("(")
@@ -168,7 +168,7 @@ fn main(): i32 {
                     } else {
                         sb_push(",")
                     }
-                    sb_push(int_to_str(g_gid))
+                    sb_push_i32(g_gid)
                     sb_push("(")
                     sb_push(gparts[0])
                     sb_push(")")
