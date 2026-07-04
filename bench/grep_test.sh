@@ -57,6 +57,11 @@ echo "== -l (files with matches)"
 cmp_gnu "l apple"      -l apple f1 sub/f2
 cmp_gnu "rl apple"     -rl apple .
 
+echo "== context (-A/-B/-C)"
+cmp_gnu "-A 1 apple"   -A 1 apple f1
+cmp_gnu "-B 1 apple"   -B 1 apple f1
+cmp_gnu "-C 1 cherry"  -C 1 cherry f1
+
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
 rm -rf "$ROOT"

@@ -8,6 +8,9 @@ module main
 //   -c   print only the match count per file
 //   -l   print only the filename of files with at least one match
 //   -o   print only the matched (non-empty) part of each matching line
+//   -A N  print N lines of context AFTER each match
+//   -B N  print N lines of context BEFORE each match
+//   -C N  print N lines of context around each match ( = -A N -B N )
 //   -H   always prefix the filename
 // Combined short flags allowed (e.g. -rin). Regex match (POSIX extended regex,
 // like `grep -E`) via the regex_match builtin; patterns without metacharacters
@@ -31,9 +34,79 @@ fn matches(line: String, pat: String, ignore_case: i32, invert: i32): i32 {
     return m
 }
 
+// Context-mode grep (-A/-B/-C): two-pass. First collect all lines + match
+// flags, then print each line that is within ctx_b lines before or ctx_a lines
+// after any match, with "--" separators between non-contiguous groups.
+fn grep_text_ctx(text: String, pat: String, name: String, show_name: i32, ign: i32, inv: i32, want_n: i32, ctx_a: i32, ctx_b: i32): i32 {
+    let n: i32 = str_len(text)
+    let lines: Vec<String> = vec_new()
+    let lnums: Vec<i32> = vec_new()
+    let mf: Vec<i32> = vec_new()
+    let mut start: i32 = 0
+    let mut i: i32 = 0
+    let mut lineno: i32 = 0
+    while i <= n {
+        let mut do_line: i32 = 0
+        if i < n {
+            if str_char_at(text, i) == 10 { do_line = 1 }
+        } else {
+            if start < n { do_line = 1 }
+        }
+        if do_line == 1 {
+            lineno = lineno + 1
+            let line: String = str_slice(text, start, i)
+            lines.push(line)
+            lnums.push(lineno)
+            mf.push(matches(line, pat, ign, inv))
+            start = i + 1
+        }
+        i = i + 1
+    }
+    let nl: i32 = vec_len(lines)
+    let mut count: i32 = 0
+    let mut last_pr: i32 = -1000000
+    let mut li: i32 = 0
+    while li < nl {
+        let mut hot: i32 = 0
+        if mf[li] == 1 {
+            hot = 1
+        } else {
+            let mut j: i32 = li - ctx_a
+            if j < 0 { j = 0 }
+            let mut je: i32 = li + ctx_b
+            if je >= nl { je = nl - 1 }
+            while j <= je {
+                if mf[j] == 1 { hot = 1 }
+                j = j + 1
+            }
+        }
+        if hot == 1 {
+            if mf[li] == 1 { count = count + 1 }
+            if last_pr >= 0 {
+                if lnums[li] > last_pr + 1 {
+                    print_raw("--\n")
+                }
+            }
+            if show_name == 1 {
+                print_raw(name)
+                print_raw(":")
+            }
+            if want_n == 1 {
+                print_raw(int_to_str(lnums[li]))
+                print_raw(":")
+            }
+            print_raw(lines[li])
+            print_raw("\n")
+            last_pr = lnums[li]
+        }
+        li = li + 1
+    }
+    return count
+}
+
 // Grep one file's text. show_name => prefix "name:"; -c count / -n line number
 // handled here. Returns the number of matches.
-fn grep_text(text: String, pat: String, name: String, show_name: i32, ign: i32, inv: i32, want_n: i32, want_c: i32, want_o: i32, want_l: i32): i32 {
+fn grep_text(text: String, pat: String, name: String, show_name: i32, ign: i32, inv: i32, want_n: i32, want_c: i32, want_o: i32, want_l: i32, ctx_a: i32, ctx_b: i32): i32 {
     let n: i32 = str_len(text)
     let mut start: i32 = 0
     let mut i: i32 = 0
@@ -109,9 +182,12 @@ fn grep_text(text: String, pat: String, name: String, show_name: i32, ign: i32, 
     return count
 }
 
-fn grep_file(path: String, pat: String, show_name: i32, ign: i32, inv: i32, want_n: i32, want_c: i32, want_o: i32, want_l: i32): i32 {
+fn grep_file(path: String, pat: String, show_name: i32, ign: i32, inv: i32, want_n: i32, want_c: i32, want_o: i32, want_l: i32, ctx_a: i32, ctx_b: i32): i32 {
     let text: String = read_file(path)
-    let count: i32 = grep_text(text, pat, path, show_name, ign, inv, want_n, want_c, want_o, want_l)
+    if ctx_a > 0 || ctx_b > 0 {
+        return grep_text_ctx(text, pat, path, show_name, ign, inv, want_n, ctx_a, ctx_b)
+    }
+    let count: i32 = grep_text(text, pat, path, show_name, ign, inv, want_n, want_c, want_o, want_l, ctx_a, ctx_b)
     if want_l == 1 {
         if count > 0 {
             print_raw(path)
@@ -122,7 +198,7 @@ fn grep_file(path: String, pat: String, show_name: i32, ign: i32, inv: i32, want
 }
 
 // Recursive descent for -r.
-fn grep_recurse(dir: String, pat: String, ign: i32, inv: i32, want_n: i32, want_c: i32, want_o: i32, want_l: i32): i32 {
+fn grep_recurse(dir: String, pat: String, ign: i32, inv: i32, want_n: i32, want_c: i32, want_o: i32, want_l: i32, ctx_a: i32, ctx_b: i32): i32 {
     let count: i32 = dir_count(dir)
     let mut total: i32 = 0
     let mut k: i32 = 0
@@ -132,9 +208,9 @@ fn grep_recurse(dir: String, pat: String, ign: i32, inv: i32, want_n: i32, want_
             if str_char_at(entry, 0) != 46 {
                 let full: String = str_concat(str_concat(dir, "/"), entry)
                 if is_dir(full) {
-                    total = total + grep_recurse(full, pat, ign, inv, want_n, want_c, want_o, want_l)
+                    total = total + grep_recurse(full, pat, ign, inv, want_n, want_c, want_o, want_l, ctx_a, ctx_b)
                 } else {
-                    total = total + grep_file(full, pat, 1, ign, inv, want_n, want_c, want_o, want_l)
+                    total = total + grep_file(full, pat, 1, ign, inv, want_n, want_c, want_o, want_l, ctx_a, ctx_b)
                 }
             }
         }
@@ -145,7 +221,7 @@ fn grep_recurse(dir: String, pat: String, ign: i32, inv: i32, want_n: i32, want_
 
 fn main(): i32 {
     if argc() < 2 {
-        eprint_str("usage: grep [-rinvcolH] <pattern> [file...]")
+        eprint_str("usage: grep [-rinvcolH] [-ABC N] <pattern> [file...]")
         return 1
     }
 
@@ -157,36 +233,56 @@ fn main(): i32 {
     let mut want_c: i32 = 0
     let mut want_o: i32 = 0
     let mut want_l: i32 = 0
+    let mut ctx_a: i32 = 0
+    let mut ctx_b: i32 = 0
     let mut force_name: i32 = 0
     let mut ai: i32 = 1
     while ai < argc() {
         let arg: String = argv(ai)
-        if str_len(arg) >= 2 {
-            if str_char_at(arg, 0) == 45 {
-                let mut ci: i32 = 1
-                while ci < str_len(arg) {
-                    let f: i32 = str_char_at(arg, ci)
-                    if f == 114 { rec = 1 }
-                    if f == 110 { want_n = 1 }
-                    if f == 105 { ign = 1 }
-                    if f == 118 { inv = 1 }
-                    if f == 99 { want_c = 1 }
-                    if f == 111 { want_o = 1 }
-                    if f == 108 { want_l = 1 }
-                    if f == 72 { force_name = 1 }
-                    ci = ci + 1
-                }
-                ai = ai + 1
-            } else {
-                break
-            }
+        if str_eq(arg, "-A") {
+            if ai + 1 < argc() { ctx_a = str_to_int(argv(ai + 1)) }
+            ai = ai + 2
         } else {
-            break
+            if str_eq(arg, "-B") {
+                if ai + 1 < argc() { ctx_b = str_to_int(argv(ai + 1)) }
+                ai = ai + 2
+            } else {
+                if str_eq(arg, "-C") {
+                    if ai + 1 < argc() {
+                        ctx_a = str_to_int(argv(ai + 1))
+                        ctx_b = str_to_int(argv(ai + 1))
+                    }
+                    ai = ai + 2
+                } else {
+                    if str_len(arg) >= 2 {
+                        if str_char_at(arg, 0) == 45 {
+                            let mut ci: i32 = 1
+                            while ci < str_len(arg) {
+                                let f: i32 = str_char_at(arg, ci)
+                                if f == 114 { rec = 1 }
+                                if f == 110 { want_n = 1 }
+                                if f == 105 { ign = 1 }
+                                if f == 118 { inv = 1 }
+                                if f == 99 { want_c = 1 }
+                                if f == 111 { want_o = 1 }
+                                if f == 108 { want_l = 1 }
+                                if f == 72 { force_name = 1 }
+                                ci = ci + 1
+                            }
+                            ai = ai + 1
+                        } else {
+                            break
+                        }
+                    } else {
+                        break
+                    }
+                }
+            }
         }
     }
 
     if ai >= argc() {
-        eprint_str("usage: grep [-rinvcolH] <pattern> [file...]")
+        eprint_str("usage: grep [-rinvcolH] [-ABC N] <pattern> [file...]")
         return 1
     }
     let pat: String = argv(ai)
@@ -196,7 +292,12 @@ fn main(): i32 {
     // stdin case: no files.
     if nfiles == 0 {
         let text: String = read_stdin()
-        let rc: i32 = grep_text(text, pat, "", 0, ign, inv, want_n, want_c, want_o, want_l)
+        if ctx_a > 0 || ctx_b > 0 {
+            let rc: i32 = grep_text_ctx(text, pat, "(standard input)", 0, ign, inv, want_n, ctx_a, ctx_b)
+            if rc > 0 { return 0 }
+            return 1
+        }
+        let rc: i32 = grep_text(text, pat, "", 0, ign, inv, want_n, want_c, want_o, want_l, ctx_a, ctx_b)
         if want_l == 1 {
             if rc > 0 {
                 print_raw("(standard input)\n")
@@ -218,12 +319,12 @@ fn main(): i32 {
         let target: String = argv(ai)
         if rec == 1 {
             if is_dir(target) {
-                total = total + grep_recurse(target, pat, ign, inv, want_n, want_c, want_o, want_l)
+                total = total + grep_recurse(target, pat, ign, inv, want_n, want_c, want_o, want_l, ctx_a, ctx_b)
             } else {
-                total = total + grep_file(target, pat, show_name, ign, inv, want_n, want_c, want_o, want_l)
+                total = total + grep_file(target, pat, show_name, ign, inv, want_n, want_c, want_o, want_l, ctx_a, ctx_b)
             }
         } else {
-            total = total + grep_file(target, pat, show_name, ign, inv, want_n, want_c, want_o, want_l)
+            total = total + grep_file(target, pat, show_name, ign, inv, want_n, want_c, want_o, want_l, ctx_a, ctx_b)
         }
         ai = ai + 1
     }
