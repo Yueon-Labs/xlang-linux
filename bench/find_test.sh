@@ -53,6 +53,18 @@ echo "== find -size"
 cmp_gnu "size +1k"       . -type f -size +1k
 cmp_gnu "size -1k"       . -type f -size -1k
 
+echo "== find -delete (test on a temp copy)"
+DELETEDIR="$(mktemp -d)"
+printf 'temp1\n' > "$DELETEDIR/to_delete.x"
+printf 'temp2\n' > "$DELETEDIR/to_keep.x"
+( cd "$DELETEDIR" && "$F" . -name "to_delete.x" -delete )
+if [ ! -f "$DELETEDIR/to_delete.x" ] && [ -f "$DELETEDIR/to_keep.x" ]; then
+    echo "  ok   -delete"; PASS=$((PASS+1))
+else
+    echo "  FAIL -delete"; FAIL=$((FAIL+1))
+fi
+rm -rf "$DELETEDIR"
+
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
 rm -rf "$ROOT"

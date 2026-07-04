@@ -10,6 +10,7 @@ module main
 //   -exec CMD ... ;  run CMD per match; {} in the args is replaced by the path
 //                    (e.g. -exec echo found {} ;). Tokenizes on whitespace, so
 //                    paths/args with spaces aren't supported.
+//   -delete          delete matched files (and empty directories)
 // Pre-order recursive walk; default start dir is ".". GNU-style depth: the start
 // point is depth 0, its entries depth 1, etc.
 
@@ -125,7 +126,7 @@ fn run_exec(path: String, tpl: String): i32 {
     return 0
 }
 
-fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: String, ign: i32, exec_tpl: String, have_exec: i32, size_thr: i32, size_mode: i32, size_mult: i32): i32 {
+fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: String, ign: i32, exec_tpl: String, have_exec: i32, size_thr: i32, size_mode: i32, size_mult: i32, want_delete: i32): i32 {
     let n: i32 = dir_count(dir)
     let mut i: i32 = 0
     let mut count: i32 = 0
@@ -148,15 +149,19 @@ fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: S
                                 if have_exec == 1 {
                                     run_exec(path, exec_tpl)
                                 } else {
-                                    print_raw(path)
-                                    print_raw("\n")
+                                    if want_delete == 1 {
+                                        remove_file(path)
+                                    } else {
+                                        print_raw(path)
+                                        print_raw("\n")
+                                    }
                                 }
                                 count = count + 1
                             }
                         }
                     }
                     if isd == 1 {
-                        count = count + find_walk(path, entry_depth, maxdepth, namepat, typ, ign, exec_tpl, have_exec, size_thr, size_mode, size_mult)
+                        count = count + find_walk(path, entry_depth, maxdepth, namepat, typ, ign, exec_tpl, have_exec, size_thr, size_mode, size_mult, want_delete)
                     }
                 }
             }
@@ -177,6 +182,7 @@ fn main(): i32 {
     let mut size_thr: i32 = -1
     let mut size_mode: i32 = 0
     let mut size_mult: i32 = 1
+    let mut want_delete: i32 = 0
 
     let mut i: i32 = 1
     if argc() >= 2 {
@@ -224,7 +230,11 @@ fn main(): i32 {
                             have_exec = 1
                             i = j + 1
                         } else {
-                            if str_eq(argv(i), "-size") {
+                            if str_eq(argv(i), "-delete") {
+                                want_delete = 1
+                                i = i + 1
+                            } else {
+                                if str_eq(argv(i), "-size") {
                                 if i + 1 < argc() {
                                     let spec: String = argv(i + 1)
                                     let sl: i32 = str_len(spec)
@@ -266,6 +276,7 @@ fn main(): i32 {
                         }
                     }
                 }
+                }
             }
         }
     }
@@ -278,12 +289,16 @@ fn main(): i32 {
                 if have_exec == 1 {
                     run_exec(start, exec_tpl)
                 } else {
-                    print_raw(start)
-                    print_raw("\n")
+                    if want_delete == 1 {
+                        remove_file(start)
+                    } else {
+                        print_raw(start)
+                        print_raw("\n")
+                    }
                 }
             }
         }
     }
-    find_walk(start, 0, maxdepth, namepat, typ, ign, exec_tpl, have_exec, size_thr, size_mode, size_mult)
+    find_walk(start, 0, maxdepth, namepat, typ, ign, exec_tpl, have_exec, size_thr, size_mode, size_mult, want_delete)
     return 0
 }
