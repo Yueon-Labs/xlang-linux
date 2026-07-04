@@ -7,29 +7,26 @@ module main
 //   -v   invert (print non-matching lines)
 //   -c   print only the match count per file
 //   -H   always prefix the filename
-// Combined short flags allowed (e.g. -rin). Substring match (like GNU --fixed-
-// strings). stdin when no file given. Multi-file / -r / -H => "file:line:..." prefix.
+// Combined short flags allowed (e.g. -rin). Regex match (POSIX extended regex,
+// like `grep -E`) via the regex_match builtin; patterns without metacharacters
+// behave as plain substring search. stdin when no file given. Multi-file / -r /
+// -H => "file:line:..." prefix.
 
-// Case-insensitive substring (via str_lower — folds both sides, then exact match).
-fn contains_ci(line: String, pat: String): i32 {
-    if str_contains(str_lower(line), str_lower(pat)) { return 1 }
-    return 0
-}
-
-// Does this line match under the given flags?
+// Does `pat` (a POSIX extended regex) match anywhere in `line`? -i folds both
+// sides to lowercase first (correct for literal-ish patterns; char-class ranges
+// under -i are approximate — use explicit [Aa]-style classes).
 fn matches(line: String, pat: String, ignore_case: i32, invert: i32): i32 {
     let mut m: i32 = 0
-    if ignore_case == 1 { m = contains_ci(line, pat) } else { m = contains_cs(line, pat) }
+    if ignore_case == 1 {
+        m = regex_match(str_lower(line), str_lower(pat))
+    } else {
+        m = regex_match(line, pat)
+    }
     if invert == 1 {
         if m == 1 { return 0 }
         return 1
     }
     return m
-}
-
-fn contains_cs(line: String, pat: String): i32 {
-    if str_contains(line, pat) { return 1 }
-    return 0
 }
 
 // Grep one file's text. show_name => prefix "name:"; -c count / -n line number
