@@ -35,7 +35,7 @@ xlang's merge sort + `strcmp` beats GNU sort (GNU does locale collation);
 | showall (cat -A) | 0.19s | 0.07s | 2.71× | bulk `cat_show` (residual gap) |
 | ~~cut -d- -f2~~ | ~~0.55s~~ | 0.18s | ~~2.62×~~ → **1.2×** | **fixed**: emit fields via `sb_push_slice` (no per-line/per-field malloc) + trailing-empty-line fix; byte-identical to GNU |
 | tr a-z A-Z | 0.15s | 0.06s | 2.50× | bulk `str_translate` (residual gap) |
-| wc -l | 0.07s | 0.03s | 2.33× | bulk newline count via `str_find_from` |
+| wc -l | 0.04s | 0.02s | 2.0× | count loop now one C pass (`count_newlines`, xlang#95); remaining gap is `read_file` I/O (loads whole file vs GNU streaming) |
 | tr -d aeiou | 0.17s | 0.08s | 2.12× | bulk `str_delete` (residual gap) |
 | cate (cat -E) | 0.20s | 0.11s | 1.82× | bulk `cat_show` (residual gap) |
 | ~~uniq -c~~ | ~~0.54s~~ | — | ~~1.80×~~ → ~1× | **fixed**: same byte-range + `sb_push_slice` path as uniq |
