@@ -122,7 +122,7 @@ fn main(): i32 {
                 if want_w == 1 {
                     sb_push(pad_zero(i, width))
                 } else {
-                    sb_push(int_to_str(i))
+                    sb_push_i32(i)
                 }
                 sb_push("\n")
                 cnt = cnt + 1
@@ -138,7 +138,7 @@ fn main(): i32 {
                 if want_w == 1 {
                     sb_push(pad_zero(i, width))
                 } else {
-                    sb_push(int_to_str(i))
+                    sb_push_i32(i)
                 }
                 sb_push("\n")
                 cnt = cnt + 1
