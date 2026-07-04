@@ -173,16 +173,46 @@ fn main(): i32 {
         }
         i = i + 1
     }
-    let pn: i32 = str_len(prog)
-    let brace: i32 = str_find(prog, "{")
+
+    // Extract BEGIN{...} and END{...} blocks (if any), leaving the body rule.
+    // Scan ALL {...} blocks; first non-BEGIN/END is the body.
+    let mut begin_action: String = ""
+    let mut end_action: String = ""
+    let mut body_prog: String = prog
+    let mut bp: i32 = 0
+    let mut found_body: i32 = 0
+    while bp < str_len(prog) {
+        let brace_at: i32 = str_find_from(prog, "{", bp)
+        if brace_at < 0 { break }
+        let close_at: i32 = str_find_from(prog, "}", brace_at + 1)
+        if close_at < 0 { break }
+        let pat_str: String = trim_s(str_slice(prog, bp, brace_at))
+        let act_str: String = trim_s(str_slice(prog, brace_at + 1, close_at))
+        if str_eq(pat_str, "BEGIN") {
+            begin_action = act_str
+        } else {
+            if str_eq(pat_str, "END") {
+                end_action = act_str
+            } else {
+                if found_body == 0 {
+                    body_prog = str_concat(str_concat(pat_str, " {"), str_concat(act_str, "}"))
+                    found_body = 1
+                }
+            }
+        }
+        bp = close_at + 1
+    }
+
+    let pn: i32 = str_len(body_prog)
+    let brace: i32 = str_find(body_prog, "{")
     let mut pattern: String = ""
     let mut action: String = "print"
     if brace >= 0 {
-        pattern = trim_s(str_slice(prog, 0, brace))
-        let close: i32 = str_find(prog, "}")
-        action = trim_s(str_slice(prog, brace + 1, close))
+        pattern = trim_s(str_slice(body_prog, 0, brace))
+        let close: i32 = str_find(body_prog, "}")
+        action = trim_s(str_slice(body_prog, brace + 1, close))
     } else {
-        pattern = trim_s(prog)
+        pattern = trim_s(body_prog)
     }
     let mut items: Vec<String> = vec_new()
     if str_find(action, "print") == 0 {
@@ -200,7 +230,6 @@ fn main(): i32 {
     if has_pattern {
         num = parse_num(pattern)
     }
-    // A /regex/ pattern (slash-delimited) matches the line as POSIX ERE.
     let mut is_regex: i32 = 0
     let mut pat_body: String = ""
     if has_pattern {
@@ -212,6 +241,59 @@ fn main(): i32 {
             }
         }
     }
+
+    // Helper: execute a print action string (e.g. "print \"hello\"" or "print NR").
+    let begin_items: Vec<String> = vec_new()
+    let end_items: Vec<String> = vec_new()
+    if str_len(begin_action) > 0 {
+        if str_find(begin_action, "print") == 0 {
+            let rest: String = trim_s(str_slice(begin_action, 5, str_len(begin_action)))
+            if str_len(rest) > 0 {
+                let tmp: Vec<String> = split_on(rest, 44)
+                let tn: i32 = vec_len(tmp)
+                let mut ti: i32 = 0
+                while ti < tn {
+                    begin_items.push(tmp[ti])
+                    ti = ti + 1
+                }
+            }
+        }
+    }
+    if str_len(end_action) > 0 {
+        if str_find(end_action, "print") == 0 {
+            let rest: String = trim_s(str_slice(end_action, 5, str_len(end_action)))
+            if str_len(rest) > 0 {
+                let tmp: Vec<String> = split_on(rest, 44)
+                let tn: i32 = vec_len(tmp)
+                let mut ti: i32 = 0
+                while ti < tn {
+                    end_items.push(tmp[ti])
+                    ti = ti + 1
+                }
+            }
+        }
+    }
+
+    // Execute BEGIN block (lineno=0, no line data).
+    if vec_len(begin_items) > 0 {
+        let empty_fields: Vec<String> = vec_new()
+        let ic: i32 = vec_len(begin_items)
+        let mut j: i32 = 0
+        while j < ic {
+            if j > 0 { print_raw(" ") }
+            print_raw(eval_item(begin_items[j], "", empty_fields, 0, 0))
+            j = j + 1
+        }
+        print_raw("\n")
+    } else {
+        if str_len(begin_action) > 0 {
+            if str_find(begin_action, "print") != 0 {
+                print_raw(begin_action)
+                print_raw("\n")
+            }
+        }
+    }
+
     let mut s: String = ""
     if str_len(file) > 0 {
         s = read_file(file)
@@ -263,5 +345,26 @@ fn main(): i32 {
         start = p + 1
         p = p + 1
     }
+
+    // Execute END block (lineno = final count).
+    if vec_len(end_items) > 0 {
+        let empty_fields: Vec<String> = vec_new()
+        let ic: i32 = vec_len(end_items)
+        let mut j: i32 = 0
+        while j < ic {
+            if j > 0 { print_raw(" ") }
+            print_raw(eval_item(end_items[j], "", empty_fields, lineno, 0))
+            j = j + 1
+        }
+        print_raw("\n")
+    } else {
+        if str_len(end_action) > 0 {
+            if str_find(end_action, "print") != 0 {
+                print_raw(end_action)
+                print_raw("\n")
+            }
+        }
+    }
+
     return 0
 }

@@ -46,6 +46,11 @@ echo "== awk -F separator"
 cmp_gnu "-F, \$2"       "$CSV" -F, '{print $2}'
 cmp_gnu "-F, \$1,\$3"   "$CSV" -F, '{print $1, $3}'
 
+echo "== awk BEGIN/END blocks"
+cmp_gnu "BEGIN+body+END" "$WORDS" 'BEGIN{print "HEADER"} {print} END{print "FOOTER"}'
+cmp_gnu "END{print NR}"  "$WORDS" '{print} END{print NR}'
+cmp_gnu "BEGIN only"     "$WORDS" 'BEGIN{print "START"}'
+
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
 [ "$FAIL" = 0 ]
