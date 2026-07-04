@@ -153,6 +153,20 @@ fn parse_script(script: String): Vec<SedCmd> {
                 }
             }
         }
+        if op == 97 || op == 105 {
+            if pos < sn {
+                if str_char_at(script, pos) == 32 { pos = pos + 1 }
+            }
+            if pos < sn {
+                if str_char_at(script, pos) == 92 { pos = pos + 1 }
+            }
+            let text_start: i32 = pos
+            while pos < sn {
+                if str_char_at(script, pos) == 59 { break }
+                pos = pos + 1
+            }
+            pat = str_slice(script, text_start, pos)
+        }
         cmds.push(SedCmd { addr_lo: addr_lo, addr_hi: addr_hi, have_addr: have_addr, op: op, pat: pat, repl: repl, global: glob })
     }
     return cmds
@@ -223,6 +237,8 @@ fn main(): i32 {
                 let mut cur: String = str_slice(text, start, k)
                 let mut deleted: i32 = 0
                 let mut quit: i32 = 0
+                let mut append_text: String = ""
+                let mut have_append: i32 = 0
                 let mut c: i32 = 0
                 while c < ncmds {
                     let cmd: SedCmd = cmds[c]
@@ -252,6 +268,19 @@ fn main(): i32 {
                         if cmd.op == 113 {
                             quit = 1
                         }
+                        if cmd.op == 105 {
+                            if in_place == 1 {
+                                out_lines.push(cmd.pat)
+                                out_lines.push("\n")
+                            } else {
+                                print_raw(cmd.pat)
+                                print_raw("\n")
+                            }
+                        }
+                        if cmd.op == 97 {
+                            append_text = cmd.pat
+                            have_append = 1
+                        }
                     }
                     if deleted == 1 { c = ncmds } else { c = c + 1 }
                 }
@@ -264,6 +293,15 @@ fn main(): i32 {
                             print_raw(cur)
                             print_raw("\n")
                         }
+                    }
+                }
+                if have_append == 1 {
+                    if in_place == 1 {
+                        out_lines.push(append_text)
+                        out_lines.push("\n")
+                    } else {
+                        print_raw(append_text)
+                        print_raw("\n")
                     }
                 }
                 if quit == 1 {

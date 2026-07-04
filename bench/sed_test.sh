@@ -41,6 +41,11 @@ cmp_gnu "= line nums"   '='
 cmp_gnu "3q quit"       '3q'
 cmp_gnu "2,3d + ="      '2,3d;='
 
+echo "== sed a (append) and i (insert)"
+cmp_gnu "a text"        'a APPENDED'
+cmp_gnu "i text"        'i INSERTED'
+cmp_gnu "2a addressed"  '2a AFTER2'
+
 echo "== sed -i (in-place edit)"
 # -i writes a temp file and renames over the original (POSIX rename overwrites;
 # the Windows-native binary can't overwrite, so this is a Linux-CI test).
