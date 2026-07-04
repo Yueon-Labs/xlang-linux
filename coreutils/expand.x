@@ -31,12 +31,7 @@ fn main(): i32 {
         }
     }
     if tabstop < 1 { tabstop = 1 }
-    let mut s: String = ""
-    if str_len(file) > 0 {
-        s = read_file(file)
-    } else {
-        s = read_stdin()
-    }
+    let s: String = if str_len(file) > 0 { read_file(file) } else { read_stdin() }
     // Buffer the whole output and write once (per-char print_raw is N mallocs
     // + N syscalls — the fold trap). Output size ~ input size, so safe.
     sb_new()
