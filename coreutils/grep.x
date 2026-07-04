@@ -6,6 +6,7 @@ module main
 //   -i   ignore case
 //   -v   invert (print non-matching lines)
 //   -c   print only the match count per file
+//   -l   print only the filename of files with at least one match
 //   -o   print only the matched (non-empty) part of each matching line
 //   -H   always prefix the filename
 // Combined short flags allowed (e.g. -rin). Regex match (POSIX extended regex,
@@ -32,7 +33,7 @@ fn matches(line: String, pat: String, ignore_case: i32, invert: i32): i32 {
 
 // Grep one file's text. show_name => prefix "name:"; -c count / -n line number
 // handled here. Returns the number of matches.
-fn grep_text(text: String, pat: String, name: String, show_name: i32, ign: i32, inv: i32, want_n: i32, want_c: i32, want_o: i32): i32 {
+fn grep_text(text: String, pat: String, name: String, show_name: i32, ign: i32, inv: i32, want_n: i32, want_c: i32, want_o: i32, want_l: i32): i32 {
     let n: i32 = str_len(text)
     let mut start: i32 = 0
     let mut i: i32 = 0
@@ -52,8 +53,8 @@ fn grep_text(text: String, pat: String, name: String, show_name: i32, ign: i32, 
             let line: String = str_slice(text, start, i)
             if matches(line, pat, ign, inv) == 1 {
                 count = count + 1
-                if want_c == 0 {
-                    if want_o == 1 {
+                if want_c == 0 && want_l == 0 {
+                        if want_o == 1 {
                         let mut lpat: String = pat
                         let mut lline: String = line
                         if ign == 1 {
@@ -108,13 +109,20 @@ fn grep_text(text: String, pat: String, name: String, show_name: i32, ign: i32, 
     return count
 }
 
-fn grep_file(path: String, pat: String, show_name: i32, ign: i32, inv: i32, want_n: i32, want_c: i32, want_o: i32): i32 {
+fn grep_file(path: String, pat: String, show_name: i32, ign: i32, inv: i32, want_n: i32, want_c: i32, want_o: i32, want_l: i32): i32 {
     let text: String = read_file(path)
-    return grep_text(text, pat, path, show_name, ign, inv, want_n, want_c, want_o)
+    let count: i32 = grep_text(text, pat, path, show_name, ign, inv, want_n, want_c, want_o, want_l)
+    if want_l == 1 {
+        if count > 0 {
+            print_raw(path)
+            print_raw("\n")
+        }
+    }
+    return count
 }
 
 // Recursive descent for -r.
-fn grep_recurse(dir: String, pat: String, ign: i32, inv: i32, want_n: i32, want_c: i32, want_o: i32): i32 {
+fn grep_recurse(dir: String, pat: String, ign: i32, inv: i32, want_n: i32, want_c: i32, want_o: i32, want_l: i32): i32 {
     let count: i32 = dir_count(dir)
     let mut total: i32 = 0
     let mut k: i32 = 0
@@ -124,9 +132,9 @@ fn grep_recurse(dir: String, pat: String, ign: i32, inv: i32, want_n: i32, want_
             if str_char_at(entry, 0) != 46 {
                 let full: String = str_concat(str_concat(dir, "/"), entry)
                 if is_dir(full) {
-                    total = total + grep_recurse(full, pat, ign, inv, want_n, want_c, want_o)
+                    total = total + grep_recurse(full, pat, ign, inv, want_n, want_c, want_o, want_l)
                 } else {
-                    total = total + grep_file(full, pat, 1, ign, inv, want_n, want_c, want_o)
+                    total = total + grep_file(full, pat, 1, ign, inv, want_n, want_c, want_o, want_l)
                 }
             }
         }
@@ -137,7 +145,7 @@ fn grep_recurse(dir: String, pat: String, ign: i32, inv: i32, want_n: i32, want_
 
 fn main(): i32 {
     if argc() < 2 {
-        eprint_str("usage: grep [-rinvcoH] <pattern> [file...]")
+        eprint_str("usage: grep [-rinvcolH] <pattern> [file...]")
         return 1
     }
 
@@ -148,6 +156,7 @@ fn main(): i32 {
     let mut inv: i32 = 0
     let mut want_c: i32 = 0
     let mut want_o: i32 = 0
+    let mut want_l: i32 = 0
     let mut force_name: i32 = 0
     let mut ai: i32 = 1
     while ai < argc() {
@@ -163,6 +172,7 @@ fn main(): i32 {
                     if f == 118 { inv = 1 }
                     if f == 99 { want_c = 1 }
                     if f == 111 { want_o = 1 }
+                    if f == 108 { want_l = 1 }
                     if f == 72 { force_name = 1 }
                     ci = ci + 1
                 }
@@ -176,7 +186,7 @@ fn main(): i32 {
     }
 
     if ai >= argc() {
-        eprint_str("usage: grep [-rinvcoH] <pattern> [file...]")
+        eprint_str("usage: grep [-rinvcolH] <pattern> [file...]")
         return 1
     }
     let pat: String = argv(ai)
@@ -186,7 +196,12 @@ fn main(): i32 {
     // stdin case: no files.
     if nfiles == 0 {
         let text: String = read_stdin()
-        let rc: i32 = grep_text(text, pat, "", 0, ign, inv, want_n, want_c, want_o)
+        let rc: i32 = grep_text(text, pat, "", 0, ign, inv, want_n, want_c, want_o, want_l)
+        if want_l == 1 {
+            if rc > 0 {
+                print_raw("(standard input)\n")
+            }
+        }
         if rc > 0 { return 0 }
         return 1
     }
@@ -203,12 +218,12 @@ fn main(): i32 {
         let target: String = argv(ai)
         if rec == 1 {
             if is_dir(target) {
-                total = total + grep_recurse(target, pat, ign, inv, want_n, want_c, want_o)
+                total = total + grep_recurse(target, pat, ign, inv, want_n, want_c, want_o, want_l)
             } else {
-                total = total + grep_file(target, pat, show_name, ign, inv, want_n, want_c, want_o)
+                total = total + grep_file(target, pat, show_name, ign, inv, want_n, want_c, want_o, want_l)
             }
         } else {
-            total = total + grep_file(target, pat, show_name, ign, inv, want_n, want_c, want_o)
+            total = total + grep_file(target, pat, show_name, ign, inv, want_n, want_c, want_o, want_l)
         }
         ai = ai + 1
     }
