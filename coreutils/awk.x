@@ -200,6 +200,18 @@ fn main(): i32 {
     if has_pattern {
         num = parse_num(pattern)
     }
+    // A /regex/ pattern (slash-delimited) matches the line as POSIX ERE.
+    let mut is_regex: i32 = 0
+    let mut pat_body: String = ""
+    if has_pattern {
+        let pl: i32 = str_len(pattern)
+        if pl >= 2 {
+            if str_char_at(pattern, 0) == 47 && str_char_at(pattern, pl - 1) == 47 {
+                is_regex = 1
+                pat_body = str_slice(pattern, 1, pl - 1)
+            }
+        }
+    }
     let mut s: String = ""
     if str_len(file) > 0 {
         s = read_file(file)
@@ -219,7 +231,17 @@ fn main(): i32 {
         }
         lineno = lineno + 1
         let line: String = str_slice(s, start, p)
-        if !has_pattern || pattern_matches(op, num, lineno) {
+        let mut do_act: bool = false
+        if !has_pattern {
+            do_act = true
+        } else {
+            if is_regex == 1 {
+                if regex_match(line, pat_body) == 1 { do_act = true }
+            } else {
+                if pattern_matches(op, num, lineno) { do_act = true }
+            }
+        }
+        if do_act {
             let fields: Vec<String> = split_fields(line, sep)
             let nf: i32 = vec_len(fields)
             let ic: i32 = vec_len(items)
