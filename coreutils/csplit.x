@@ -206,12 +206,7 @@ fn main(): i32 {
         return 1
     }
 
-    let mut s: String = ""
-    if str_eq(file, "-") {
-        s = read_stdin()
-    } else {
-        s = read_file(file)
-    }
+    let s: String = if str_eq(file, "-") { read_stdin() } else { read_file(file) }
 
     // Build line-start byte offsets; line_starts[total] == len(s) (EOF).
     let line_starts: Vec<i32> = vec_new()

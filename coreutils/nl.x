@@ -42,12 +42,7 @@ fn main(): i32 {
             i = i + 1
         }
     }
-    let mut s: String = ""
-    if str_len(file) > 0 {
-        s = read_file(file)
-    } else {
-        s = read_stdin()
-    }
+    let s: String = if str_len(file) > 0 { read_file(file) } else { read_stdin() }
     let n: i32 = str_len(s)
     // Buffer output (one write at the end) — per-line print_raw is N syscalls.
     sb_new()
