@@ -46,6 +46,10 @@ cmp_gnu "a text"        'a APPENDED'
 cmp_gnu "i text"        'i INSERTED'
 cmp_gnu "2a addressed"  '2a AFTER2'
 
+echo "== sed y (transliterate) and c (change)"
+cmp_gnu "y translit"    'y/elo/ELI/'
+cmp_gnu "2c change"     '2c CHANGED'
+
 echo "== sed -i (in-place edit)"
 # -i writes a temp file and renames over the original (POSIX rename overwrites;
 # the Windows-native binary can't overwrite, so this is a Linux-CI test).
