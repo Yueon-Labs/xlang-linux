@@ -6,12 +6,7 @@ module main
 // Print the first `limit` bytes of path ("" = stdin). (Text/strlen-limited;
 // not binary-safe past a NUL, like the rest of xlang's C-string I/O.)
 fn head_file_bytes(path: String, limit: i32): i32 {
-    let mut s: String = ""
-    if str_len(path) > 0 {
-        s = read_file(path)
-    } else {
-        s = read_stdin()
-    }
+    let s: String = if str_len(path) > 0 { read_file(path) } else { read_stdin() }
     let n: i32 = str_len(s)
     let mut end: i32 = limit
     if end > n { end = n }
@@ -22,12 +17,7 @@ fn head_file_bytes(path: String, limit: i32): i32 {
 
 // Print the first `limit` lines of path ("" = stdin).
 fn head_file(path: String, limit: i32): i32 {
-    let mut s: String = ""
-    if str_len(path) > 0 {
-        s = read_file(path)
-    } else {
-        s = read_stdin()
-    }
+    let s: String = if str_len(path) > 0 { read_file(path) } else { read_stdin() }
     let n: i32 = str_len(s)
     let mut printed: i32 = 0
     let mut start: i32 = 0
