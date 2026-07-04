@@ -129,7 +129,7 @@ fn parse_script(script: String): Vec<SedCmd> {
         let mut pat: String = ""
         let mut repl: String = ""
         let mut glob: i32 = 0
-        if op == 115 {
+        if op == 115 || op == 121 {
             let sep: i32 = str_char_at(script, pos)
             pos = pos + 1
             let pat_start: i32 = pos
@@ -146,14 +146,16 @@ fn parse_script(script: String): Vec<SedCmd> {
             }
             repl = str_slice(script, repl_start, pos)
             if pos < sn { pos = pos + 1 }
-            if pos < sn {
-                if str_char_at(script, pos) == 103 {
-                    glob = 1
-                    pos = pos + 1
+            if op == 115 {
+                if pos < sn {
+                    if str_char_at(script, pos) == 103 {
+                        glob = 1
+                        pos = pos + 1
+                    }
                 }
             }
         }
-        if op == 97 || op == 105 {
+        if op == 97 || op == 105 || op == 99 {
             if pos < sn {
                 if str_char_at(script, pos) == 32 { pos = pos + 1 }
             }
@@ -245,6 +247,12 @@ fn main(): i32 {
                     if addr_matches(cmd, lineno) {
                         if cmd.op == 115 {
                             cur = substitute(cur, cmd.pat, cmd.repl, cmd.global)
+                        }
+                        if cmd.op == 121 {
+                            cur = str_translate(cur, cmd.pat, cmd.repl)
+                        }
+                        if cmd.op == 99 {
+                            cur = cmd.pat
                         }
                         if cmd.op == 100 { deleted = 1 }
                         if cmd.op == 112 {
