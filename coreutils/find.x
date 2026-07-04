@@ -12,6 +12,7 @@ module main
 //                    paths/args with spaces aren't supported.
 //   -delete          delete matched files (and empty directories)
 //   -mtime N         modified exactly N days ago; +N = more than, -N = less than
+//   -newer FILE      modified more recently than FILE
 // Pre-order recursive walk; default start dir is ".". GNU-style depth: the start
 // point is depth 0, its entries depth 1, etc.
 
@@ -144,7 +145,7 @@ fn run_exec(path: String, tpl: String): i32 {
     return 0
 }
 
-fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: String, ign: i32, exec_tpl: String, have_exec: i32, size_thr: i32, size_mode: i32, size_mult: i32, want_delete: i32, mtime_thr: i32, mtime_mode: i32): i32 {
+fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: String, ign: i32, exec_tpl: String, have_exec: i32, size_thr: i32, size_mode: i32, size_mult: i32, want_delete: i32, mtime_thr: i32, mtime_mode: i32, newer_thr: i32): i32 {
     let n: i32 = dir_count(dir)
     let mut i: i32 = 0
     let mut count: i32 = 0
@@ -165,6 +166,7 @@ fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: S
                         if name_ok(entry, namepat, ign) == 1 {
                             if size_ok(path, size_thr, size_mode, size_mult) == 1 {
                             if mtime_ok(path, mtime_thr, mtime_mode) == 1 {
+                            if newer_thr < 0 || stat_field(path, 5) > newer_thr {
                                 if have_exec == 1 {
                                     run_exec(path, exec_tpl)
                                 } else {
@@ -178,10 +180,11 @@ fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: S
                                 count = count + 1
                             }
                             }
+                            }
                         }
                     }
                     if isd == 1 {
-                        count = count + find_walk(path, entry_depth, maxdepth, namepat, typ, ign, exec_tpl, have_exec, size_thr, size_mode, size_mult, want_delete, mtime_thr, mtime_mode)
+                        count = count + find_walk(path, entry_depth, maxdepth, namepat, typ, ign, exec_tpl, have_exec, size_thr, size_mode, size_mult, want_delete, mtime_thr, mtime_mode, newer_thr)
                     }
                 }
             }
@@ -205,6 +208,7 @@ fn main(): i32 {
     let mut want_delete: i32 = 0
     let mut mtime_thr: i32 = -1
     let mut mtime_mode: i32 = 0
+    let mut newer_thr: i32 = -1
 
     let mut i: i32 = 1
     if argc() >= 2 {
@@ -256,6 +260,12 @@ fn main(): i32 {
                                 want_delete = 1
                                 i = i + 1
                             } else {
+                                if str_eq(argv(i), "-newer") {
+                                    if i + 1 < argc() {
+                                        newer_thr = stat_field(argv(i + 1), 5)
+                                    }
+                                    i = i + 2
+                                } else {
                                 if str_eq(argv(i), "-mtime") {
                                     if i + 1 < argc() {
                                         let spec: String = argv(i + 1)
@@ -324,6 +334,7 @@ fn main(): i32 {
                             }
                         }
                     }
+                    }
                 }
                     }
                 }
@@ -349,6 +360,6 @@ fn main(): i32 {
             }
         }
     }
-    find_walk(start, 0, maxdepth, namepat, typ, ign, exec_tpl, have_exec, size_thr, size_mode, size_mult, want_delete, mtime_thr, mtime_mode)
+    find_walk(start, 0, maxdepth, namepat, typ, ign, exec_tpl, have_exec, size_thr, size_mode, size_mult, want_delete, mtime_thr, mtime_mode, newer_thr)
     return 0
 }
