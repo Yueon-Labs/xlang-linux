@@ -45,20 +45,11 @@ fn count(text: String): Counts {
     return Counts { lines: lines, words: words, bytes: bytes, maxlen: maxlen }
 }
 
-// Fast newline count for the -l-only case: str_find_from scans for '\n' at
-// C/memchr speed (bulk), vs the per-char str_char_at loop in count() which the
-// Linux scoreboard flagged as ~9x slower than GNU wc -l. Only correct when no
-// other count (-w/-c/-L) is needed.
+// Fast newline count for the -l-only case: a single one-pass C loop
+// (count_newlines builtin), vs the old str_find_from-per-newline loop
+// (N function calls). Only correct when no other count (-w/-c/-L) is needed.
 fn count_lines(text: String): i32 {
-    let mut lines: i32 = 0
-    let mut start: i32 = 0
-    while true {
-        let pos: i32 = str_find_from(text, "\n", start)
-        if pos < 0 { break }
-        lines = lines + 1
-        start = pos + 1
-    }
-    return lines
+    return count_newlines(text)
 }
 
 fn only_lines(want_l: i32, want_w: i32, want_c: i32, want_L: i32): i32 {
