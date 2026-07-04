@@ -8,7 +8,8 @@ module main
 //   [addr]d                delete the line (skip remaining commands, no auto-print)
 //   [addr]p                print the line immediately
 //   addr = N | N,M         apply only to line N / lines N..M
-// -n suppresses automatic end-of-cycle printing. Literal matching (no regex).
+// -n suppresses automatic end-of-cycle printing. s/pat/repl/ uses POSIX
+// extended-regex matching (patterns without metacharacters are literal).
 // ';' inside s/// is literal (respected during parsing). stdin if no file.
 // -i edits the file in place (writes a temp file, renames over the original).
 
@@ -28,45 +29,52 @@ fn is_digit(c: i32): bool {
     return true
 }
 
-fn matches_at(line: String, at: i32, pat: String): bool {
-    let ln: i32 = str_len(line)
-    let pn: i32 = str_len(pat)
-    if pn == 0 { return false }
-    if at + pn > ln { return false }
-    let mut j: i32 = 0
-    while j < pn {
-        if str_char_at(line, at + j) != str_char_at(pat, j) { return false }
-        j = j + 1
-    }
-    return true
-}
-
+// Regex substitution: pat is a POSIX extended regex; each (non-overlapping,
+// or just the first without g) match is replaced by `repl`, with `&` in repl
+// expanding to the matched text. Match spans come from regex_find_from /
+// regex_match_len (xlang#98). Patterns without metacharacters behave as plain
+// literal substitution (all existing cases unchanged).
 fn substitute(line: String, pat: String, repl: String, global: i32): String {
     let ln: i32 = str_len(line)
-    let pn: i32 = str_len(pat)
-    if pn == 0 { return line }
     sb_new()
     let mut i: i32 = 0
     let mut did_one: bool = false
-    while i < ln {
-        let take: bool = (!did_one || global == 1) && matches_at(line, i, pat)
-        if take {
-            // Expand & in repl to the matched text (pat); other chars literal.
-            let rn: i32 = str_len(repl)
-            let mut ri: i32 = 0
-            while ri < rn {
-                if str_char_at(repl, ri) == 38 {
-                    sb_push(pat)
-                } else {
-                    sb_push_char(str_char_at(repl, ri))
-                }
-                ri = ri + 1
+    while i <= ln {
+        let mut mstart: i32 = -1
+        if !did_one || global == 1 {
+            mstart = regex_find_from(line, pat, i)
+        }
+        if mstart < 0 || mstart > ln {
+            sb_push_slice(line, i, ln)
+            break
+        }
+        let mlen: i32 = regex_match_len()
+        sb_push_slice(line, i, mstart)
+        let rn: i32 = str_len(repl)
+        let mut ri: i32 = 0
+        while ri < rn {
+            if str_char_at(repl, ri) == 38 {
+                sb_push_slice(line, mstart, mstart + mlen)
+            } else {
+                sb_push_char(str_char_at(repl, ri))
             }
-            i = i + pn
-            did_one = true
-        } else {
-            sb_push_char(str_char_at(line, i))
-            i = i + 1
+            ri = ri + 1
+        }
+        i = mstart + mlen
+        did_one = true
+        if global == 0 {
+            sb_push_slice(line, i, ln)
+            break
+        }
+        // Zero-length match guard (e.g. `a*`): advance one char so we don't
+        // loop forever, passing the char through unchanged.
+        if mlen == 0 {
+            if i < ln {
+                sb_push_char(str_char_at(line, i))
+                i = i + 1
+            } else {
+                break
+            }
         }
     }
     return str_slice(sb_str(), 0, str_len(sb_str()))
