@@ -49,6 +49,10 @@ echo "== find -exec (run a command per match; {} -> path)"
 cmp_gnu "exec echo {}"     . -name "*.x" -exec echo X {} ";"
 cmp_gnu "exec echo type-f" . -type f -exec echo F {} ";"
 
+echo "== find -size"
+cmp_gnu "size +1k"       . -type f -size +1k
+cmp_gnu "size -1k"       . -type f -size -1k
+
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
 rm -rf "$ROOT"
