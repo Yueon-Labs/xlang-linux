@@ -57,6 +57,19 @@ echo "== find -mtime"
 cmp_gnu "mtime -1"       . -type f -mtime -1
 cmp_gnu "mtime +0"       . -type f -mtime +0
 
+echo "== find -newer"
+NEWERDIR="$(mktemp -d)"
+printf 'ref\n' > "$NEWERDIR/ref.txt"
+printf 'newer\n' > "$NEWERDIR/newer.txt"
+printf 'older\n' > "$NEWERDIR/older.txt"
+touch -d "1 hour ago" "$NEWERDIR/newer.txt"
+touch -d "1 hour ago" "$NEWERDIR/ref.txt"
+touch -d "3 days ago" "$NEWERDIR/older.txt"
+NEWER_X=$(cd "$NEWERDIR" && "$F" . -type f -newer ref.txt 2>/dev/null | sort)
+NEWER_G=$(cd "$NEWERDIR" && find . -type f -newer ref.txt 2>/dev/null | sort)
+if [ "$NEWER_X" = "$NEWER_G" ]; then echo "  ok   -newer"; PASS=$((PASS+1)); else echo "  FAIL -newer"; echo "       x:$NEWER_X"; echo "       g:$NEWER_G"; FAIL=$((FAIL+1)); fi
+rm -rf "$NEWERDIR"
+
 echo "== find -delete (test on a temp copy)"
 DELETEDIR="$(mktemp -d)"
 printf 'temp1\n' > "$DELETEDIR/to_delete.x"
