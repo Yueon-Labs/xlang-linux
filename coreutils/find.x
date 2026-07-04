@@ -88,6 +88,25 @@ fn name_ok(name: String, namepat: String, ign: i32): i32 {
     return glob_match(name, namepat, ign)
 }
 
+fn size_ok(path: String, thr: i32, mode: i32, mult: i32): i32 {
+    if thr < 0 { return 1 }
+    let raw_sz: i32 = file_size(path)
+    let mut sz: i32 = raw_sz
+    if mult > 1 {
+        sz = ((raw_sz + mult - 1) / mult) * mult
+    }
+    if mode > 0 {
+        if sz > thr { return 1 }
+        return 0
+    }
+    if mode < 0 {
+        if sz < thr { return 1 }
+        return 0
+    }
+    if sz == thr { return 1 }
+    return 0
+}
+
 // Run an -exec command template (`tpl`, with {} placeholders) for one match:
 // substitute {} → path, fork, the child exec's the command (or exits 127 on
 // failure), the parent waits — so find survives and runs -exec per match.
@@ -106,7 +125,7 @@ fn run_exec(path: String, tpl: String): i32 {
     return 0
 }
 
-fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: String, ign: i32, exec_tpl: String, have_exec: i32): i32 {
+fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: String, ign: i32, exec_tpl: String, have_exec: i32, size_thr: i32, size_mode: i32, size_mult: i32): i32 {
     let n: i32 = dir_count(dir)
     let mut i: i32 = 0
     let mut count: i32 = 0
@@ -125,17 +144,19 @@ fn find_walk(dir: String, dir_depth: i32, maxdepth: i32, namepat: String, typ: S
                     let isd: i32 = is_dir(path)
                     if type_ok(isd, typ) == 1 {
                         if name_ok(entry, namepat, ign) == 1 {
-                            if have_exec == 1 {
-                                run_exec(path, exec_tpl)
-                            } else {
-                                print_raw(path)
-                                print_raw("\n")
+                            if size_ok(path, size_thr, size_mode, size_mult) == 1 {
+                                if have_exec == 1 {
+                                    run_exec(path, exec_tpl)
+                                } else {
+                                    print_raw(path)
+                                    print_raw("\n")
+                                }
+                                count = count + 1
                             }
-                            count = count + 1
                         }
                     }
                     if isd == 1 {
-                        count = count + find_walk(path, entry_depth, maxdepth, namepat, typ, ign, exec_tpl, have_exec)
+                        count = count + find_walk(path, entry_depth, maxdepth, namepat, typ, ign, exec_tpl, have_exec, size_thr, size_mode, size_mult)
                     }
                 }
             }
@@ -153,6 +174,9 @@ fn main(): i32 {
     let mut ign: i32 = 0
     let mut exec_tpl: String = ""
     let mut have_exec: i32 = 0
+    let mut size_thr: i32 = -1
+    let mut size_mode: i32 = 0
+    let mut size_mult: i32 = 1
 
     let mut i: i32 = 1
     if argc() >= 2 {
@@ -185,8 +209,6 @@ fn main(): i32 {
                         i = i + 2
                     } else {
                         if str_eq(argv(i), "-exec") {
-                            // Collect the command + args (until ';'), joined with
-                            // spaces; {} placeholders are substituted per match.
                             sb_new()
                             let mut j: i32 = i + 1
                             let mut firsta: i32 = 1
@@ -202,7 +224,45 @@ fn main(): i32 {
                             have_exec = 1
                             i = j + 1
                         } else {
-                            i = i + 1
+                            if str_eq(argv(i), "-size") {
+                                if i + 1 < argc() {
+                                    let spec: String = argv(i + 1)
+                                    let sl: i32 = str_len(spec)
+                                    let mut sp: i32 = 0
+                                    size_mode = 0
+                                    if sl > 0 {
+                                        if str_char_at(spec, 0) == 43 { size_mode = 1
+                                        sp = 1 }
+                                        if str_char_at(spec, 0) == 45 { size_mode = 0 - 1
+                                        sp = 1 }
+                                    }
+                                    let mut num: i32 = 0
+                                    while sp < sl {
+                                        let c: i32 = str_char_at(spec, sp)
+                                        if c >= 48 {
+                                            if c <= 57 {
+                                                num = num * 10 + (c - 48)
+                                                sp = sp + 1
+                                            }
+                                        }
+                                        if c < 48 { break }
+                                        if c > 57 { break }
+                                    }
+                                    let mut mult: i32 = 1
+                                    if sp < sl {
+                                        let u: i32 = str_char_at(spec, sp)
+                                        if u == 99 { mult = 1 }
+                                        if u == 107 { mult = 1024 }
+                                        if u == 77 { mult = 1048576 }
+                                        if u == 71 { mult = 1073741824 }
+                                    }
+                                    size_mult = mult
+                                    size_thr = num * mult
+                                }
+                                i = i + 2
+                            } else {
+                                i = i + 1
+                            }
                         }
                     }
                 }
@@ -214,14 +274,16 @@ fn main(): i32 {
     let start_isd: i32 = is_dir(start)
     if type_ok(start_isd, typ) == 1 {
         if name_ok(start, namepat, ign) == 1 {
-            if have_exec == 1 {
-                run_exec(start, exec_tpl)
-            } else {
-                print_raw(start)
-                print_raw("\n")
+            if size_ok(start, size_thr, size_mode, size_mult) == 1 {
+                if have_exec == 1 {
+                    run_exec(start, exec_tpl)
+                } else {
+                    print_raw(start)
+                    print_raw("\n")
+                }
             }
         }
     }
-    find_walk(start, 0, maxdepth, namepat, typ, ign, exec_tpl, have_exec)
+    find_walk(start, 0, maxdepth, namepat, typ, ign, exec_tpl, have_exec, size_thr, size_mode, size_mult)
     return 0
 }
