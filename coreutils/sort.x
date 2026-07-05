@@ -6,7 +6,7 @@ module main
 //   -t DELIM  field delimiter (default: whitespace runs)
 // Bottom-up merge sort: O(n log n), stable.
 
-fn cmp3(a: String, b: String, numeric: bool): i32 {
+fn cmp3(a: String, b: String, numeric: bool, fold: bool): i32 {
     if numeric {
         let va: i32 = str_to_int(a)
         let vb: i32 = str_to_int(b)
@@ -19,7 +19,15 @@ fn cmp3(a: String, b: String, numeric: bool): i32 {
         // numeric tie: fall through to full-line comparison (GNU last-resort
         // tiebreak; GNU sort is not stable unless -s is given).
     }
-    let c: i32 = str_cmp(a, b)
+    let mut c: i32 = 0
+    if fold {
+        // -f folds case for the comparison AND the last-resort tiebreak, so
+        // folded-equal lines (e.g. "Banana"/"banana") stay in input order
+        // (stable) — matching GNU sort -f.
+        c = str_cmp(str_lower(a), str_lower(b))
+    } else {
+        c = str_cmp(a, b)
+    }
     if c < 0 {
         return -1
     }
@@ -29,7 +37,7 @@ fn cmp3(a: String, b: String, numeric: bool): i32 {
     return 0
 }
 
-fn merge_sort(lines: Vec<String>, tmp: Vec<String>, count: i32, reverse: bool, numeric: bool): i32 {
+fn merge_sort(lines: Vec<String>, tmp: Vec<String>, count: i32, reverse: bool, numeric: bool, fold: bool): i32 {
     let mut width: i32 = 1
     while width < count {
         let mut i: i32 = 0
@@ -48,7 +56,7 @@ fn merge_sort(lines: Vec<String>, tmp: Vec<String>, count: i32, reverse: bool, n
             let mut t: i32 = lo
             while a < mid {
                 if b < hi {
-                    let c: i32 = cmp3(lines[a], lines[b], numeric)
+                    let c: i32 = cmp3(lines[a], lines[b], numeric, fold)
                     let mut take_a: bool = false
                     if reverse {
                         if c >= 0 {
@@ -152,6 +160,7 @@ fn main(): i32 {
     let mut reverse: bool = false
     let mut numeric: bool = false
     let mut unique: bool = false
+    let mut fold: bool = false
     let mut file: String = ""
     let key_los: Vec<i32> = vec_new()
     let key_his: Vec<i32> = vec_new()
@@ -205,6 +214,9 @@ fn main(): i32 {
                 }
                 if c == 117 {
                     unique = true
+                }
+                if c == 102 {
+                    fold = true
                 }
                 k = k + 1
             }
@@ -269,7 +281,7 @@ fn main(): i32 {
             tmp.push("")
             z = z + 1
         }
-        merge_sort(sort_lines, tmp, count, reverse, numeric)
+        merge_sort(sort_lines, tmp, count, reverse, numeric, fold)
     }
     // Buffer output (one write) — per-line print_raw is N syscalls.
     sb_new()
@@ -283,12 +295,24 @@ fn main(): i32 {
                     let prev_k: i32 = str_find(sort_lines[j - 1], sep_str)
                     let ck: String = str_slice(sort_lines[j], 0, cur_k)
                     let pk: String = str_slice(sort_lines[j - 1], 0, prev_k)
-                    if str_eq(ck, pk) {
+                    let mut same: bool = false
+                    if fold {
+                        same = str_eq(str_lower(ck), str_lower(pk))
+                    } else {
+                        same = str_eq(ck, pk)
+                    }
+                    if same {
                         j = j + 1
                         continue
                     }
                 } else {
-                    if str_eq(sort_lines[j], sort_lines[j - 1]) {
+                    let mut same: bool = false
+                    if fold {
+                        same = str_eq(str_lower(sort_lines[j]), str_lower(sort_lines[j - 1]))
+                    } else {
+                        same = str_eq(sort_lines[j], sort_lines[j - 1])
+                    }
+                    if same {
                         j = j + 1
                         continue
                     }
