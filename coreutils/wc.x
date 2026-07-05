@@ -1,8 +1,9 @@
 module main
 
-// wc [-l] [-w] [-c] [-L] [file...] — count lines/words/bytes/longest-line.
-// GNU-compatible flags. No flag = lines words bytes. Multiple files print a
-// per-file line each plus a "total" line (sum). stdin if no file.
+// wc [-l] [-w] [-c] [-m] [-L] [file...] — count lines/words/bytes/chars/longest.
+// GNU-compatible flags + column formatting (counts right-justified to the
+// width of the largest count). -m (chars) = -c (bytes) for ASCII. Multiple
+// files print a per-file line each plus a "total" line. stdin if no file.
 
 struct Counts {
     lines: i32
@@ -46,8 +47,7 @@ fn count(text: String): Counts {
 }
 
 // Fast newline count for the -l-only case: a single one-pass C loop
-// (count_newlines builtin), vs the old str_find_from-per-newline loop
-// (N function calls). Only correct when no other count (-w/-c/-L) is needed.
+// (count_newlines builtin), vs the old str_find_from-per-newline loop.
 fn count_lines(text: String): i32 {
     return count_newlines(text)
 }
@@ -65,27 +65,71 @@ fn only_lines(want_l: i32, want_w: i32, want_c: i32, want_L: i32): i32 {
     return 0
 }
 
-// Print the requested counts (space-separated), followed by name if show_name.
-fn print_counts(cnt: Counts, name: String, want_l: i32, want_w: i32, want_c: i32, want_L: i32, show_name: i32): i32 {
+fn digits(n: i32): i32 {
+    let mut d: i32 = 1
+    let mut v: i32 = n
+    if v < 0 {
+        v = 0 - v
+        d = 2
+    }
+    while v >= 10 {
+        v = v / 10
+        d = d + 1
+    }
+    return d
+}
+
+// Largest of the SELECTED counts (for column-width calculation).
+fn max_selected(cnt: Counts, want_l: i32, want_w: i32, want_c: i32, want_L: i32): i32 {
+    let mut m: i32 = 0
+    if want_l == 1 {
+        if cnt.lines > m { m = cnt.lines }
+    }
+    if want_w == 1 {
+        if cnt.words > m { m = cnt.words }
+    }
+    if want_c == 1 {
+        if cnt.bytes > m { m = cnt.bytes }
+    }
+    if want_L == 1 {
+        if cnt.maxlen > m { m = cnt.maxlen }
+    }
+    return m
+}
+
+// Print n right-justified to `width` (space-padded).
+fn print_padded(n: i32, width: i32): i32 {
+    let d: i32 = digits(n)
+    let mut s: i32 = 0
+    while s < width - d {
+        print_raw(" ")
+        s = s + 1
+    }
+    print_raw(int_to_str(n))
+    return 0
+}
+
+// Print the selected counts (each right-justified to `width`, space-separated),
+// followed by name if show_name.
+fn print_counts(cnt: Counts, name: String, want_l: i32, want_w: i32, want_c: i32, want_L: i32, width: i32, show_name: i32): i32 {
     let mut first: i32 = 1
     if want_l == 1 {
-        if first == 0 { print_raw(" ") }
-        print_raw(int_to_str(cnt.lines))
+        print_padded(cnt.lines, width)
         first = 0
     }
     if want_w == 1 {
         if first == 0 { print_raw(" ") }
-        print_raw(int_to_str(cnt.words))
+        print_padded(cnt.words, width)
         first = 0
     }
     if want_c == 1 {
         if first == 0 { print_raw(" ") }
-        print_raw(int_to_str(cnt.bytes))
+        print_padded(cnt.bytes, width)
         first = 0
     }
     if want_L == 1 {
         if first == 0 { print_raw(" ") }
-        print_raw(int_to_str(cnt.maxlen))
+        print_padded(cnt.maxlen, width)
         first = 0
     }
     if show_name == 1 {
@@ -115,6 +159,8 @@ fn main(): i32 {
                     if c == 108 { want_l = 1 }
                     if c == 119 { want_w = 1 }
                     if c == 99 { want_c = 1 }
+                    // -m (chars) = -c (bytes) for ASCII text.
+                    if c == 109 { want_c = 1 }
                     if c == 76 { want_L = 1 }
                     j = j + 1
                 }
@@ -150,15 +196,26 @@ fn main(): i32 {
         } else {
             cnt = count(s)
         }
-        print_counts(cnt, "", want_l, want_w, want_c, want_L, 0)
+        // GNU wc field width: a piped stream with multiple counts pads to a
+        // minimum of 7; a single count isn't padded.
+        let dw: i32 = digits(max_selected(cnt, want_l, want_w, want_c, want_L))
+        let nc: i32 = want_l + want_w + want_c + want_L
+        let w: i32 = if nc > 1 { if dw > 7 { dw } else { 7 } } else { dw }
+        print_counts(cnt, "", want_l, want_w, want_c, want_L, w, 0)
         return 0
     }
 
-    // One or more files: per-file line, plus "total" when >1.
+    // One or more files: two passes — count all, find the global column width,
+    // then print each (right-justified) plus a "total" line when >1.
+    let fl: Vec<i32> = vec_new()
+    let fw: Vec<i32> = vec_new()
+    let fb: Vec<i32> = vec_new()
+    let fmax: Vec<i32> = vec_new()
     let mut tlines: i32 = 0
     let mut twords: i32 = 0
     let mut tbytes: i32 = 0
     let mut tmax: i32 = 0
+    let mut gmax: i32 = 0
     let fast_l: i32 = only_lines(want_l, want_w, want_c, want_L)
     let mut p: i32 = 0
     while p < nf {
@@ -170,16 +227,30 @@ fn main(): i32 {
         } else {
             cnt = count(s)
         }
-        print_counts(cnt, f, want_l, want_w, want_c, want_L, 1)
+        fl.push(cnt.lines)
+        fw.push(cnt.words)
+        fb.push(cnt.bytes)
+        fmax.push(cnt.maxlen)
         tlines = tlines + cnt.lines
         twords = twords + cnt.words
         tbytes = tbytes + cnt.bytes
         if cnt.maxlen > tmax { tmax = cnt.maxlen }
+        let mv: i32 = max_selected(cnt, want_l, want_w, want_c, want_L)
+        if mv > gmax { gmax = mv }
         p = p + 1
     }
+    let total: Counts = Counts { lines: tlines, words: twords, bytes: tbytes, maxlen: tmax }
+    let tmv: i32 = max_selected(total, want_l, want_w, want_c, want_L)
+    if tmv > gmax { gmax = tmv }
+    let w: i32 = digits(gmax)
+    let mut q: i32 = 0
+    while q < nf {
+        let cnt: Counts = Counts { lines: fl[q], words: fw[q], bytes: fb[q], maxlen: fmax[q] }
+        print_counts(cnt, files[q], want_l, want_w, want_c, want_L, w, 1)
+        q = q + 1
+    }
     if nf > 1 {
-        let total: Counts = Counts { lines: tlines, words: twords, bytes: tbytes, maxlen: tmax }
-        print_counts(total, "total", want_l, want_w, want_c, want_L, 1)
+        print_counts(total, "total", want_l, want_w, want_c, want_L, w, 1)
     }
     return 0
 }
