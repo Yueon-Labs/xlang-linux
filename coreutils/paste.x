@@ -3,9 +3,14 @@ module main
 // paste [-d DELIMS] [-s] <file>... — merge lines from files (GNU paste).
 //   -d DELIMS   column delimiters (cycled, default \t)
 //   -s          serial: each file → one line
-// Multiple files supported. Vec<Vec<String>> not supported, so uses a flat
-// approach: all lines concatenated, with per-file start/count arrays.
-
+// Reads stdin when no file is given; "-" means stdin.
+//
+// Each file's raw text is kept once (no per-line str_slice malloc). A pair of
+// flat (start,end) byte-offset arrays records every line; cells are emitted
+// directly via sb_push_slice into one growing output buffer, flushed once.
+// Line segmentation matches GNU: split on '\n', and drop a single trailing
+// empty segment only when the file ends with a newline (so "a\n" is one line,
+// "a\n\n" is two ["a",""], and an empty file is zero lines).
 
 fn main(): i32 {
     let mut delims: String = "\t"
@@ -42,58 +47,66 @@ fn main(): i32 {
     }
     let nf: i32 = vec_len(files)
 
-    // Flat storage: all_lines has all lines from all files concatenated.
-    // file_start[f] = index in all_lines where file f's lines begin.
-    // file_count[f] = number of lines in file f.
-    let all_lines: Vec<String> = vec_new()
+    // Per-file raw text + flat line (start,end) offset arrays. No str_slice
+    // per line — just two i32 arrays and the single raw buffer per file.
+    let raws: Vec<String> = vec_new()
+    let lstart: Vec<i32> = vec_new()
+    let lend: Vec<i32> = vec_new()
     let file_start: Vec<i32> = vec_new()
     let file_count: Vec<i32> = vec_new()
     let mut fi: i32 = 0
     while fi < nf {
         let raw: String = if files[fi] == "-" { read_stdin() } else { read_file(files[fi]) }
-        let lines: Vec<String> = str_split(str_trim(raw), "
-")
-        let ln: i32 = vec_len(lines)
-        file_start.push(vec_len(all_lines))
-        file_count.push(ln)
-        let mut k: i32 = 0
-        while k < ln {
-            all_lines.push(lines[k])
-            k = k + 1
+        raws.push(raw)
+        file_start.push(vec_len(lstart))
+        let rn: i32 = str_len(raw)
+        let mut cnt: i32 = 0
+        if rn > 0 {
+            let mut s: i32 = 0
+            let mut k: i32 = 0
+            while k < rn {
+                if str_char_at(raw, k) == 10 {
+                    lstart.push(s)
+                    lend.push(k)
+                    cnt = cnt + 1
+                    s = k + 1
+                }
+                k = k + 1
+            }
+            // Trailing segment after the last newline — emit only if there is
+            // content (a final newline yields no phantom empty line; matches GNU).
+            if s < rn {
+                lstart.push(s)
+                lend.push(rn)
+                cnt = cnt + 1
+            }
         }
+        file_count.push(cnt)
         fi = fi + 1
     }
 
     let dn: i32 = str_len(delims)
+    sb_new()
 
     if serial == 1 {
         let mut f: i32 = 0
         while f < nf {
             let ln: i32 = file_count[f]
             let base: i32 = file_start[f]
-            // Single-delimiter fast path: str_join the whole file's lines in
-            // one pass (one malloc + one write) instead of ~2*ln print_raw
-            // syscalls. Multi-char -d falls back to char-cycling below.
-            if dn == 1 {
-                let cells: Vec<String> = vec_new()
-                let mut k: i32 = 0
-                while k < ln {
-                    cells.push(all_lines[base + k])
-                    k = k + 1
-                }
-                print_raw(str_join(cells, delims))
-            } else {
-                let mut k: i32 = 0
-                while k < ln {
-                    if k > 0 {
-                        let dc: i32 = str_char_at(delims, (k - 1) % dn)
-                        print_raw(chr(dc))
+            let raw: String = raws[f]
+            let mut r: i32 = 0
+            while r < ln {
+                if r > 0 {
+                    if dn == 1 {
+                        sb_push(delims)
+                    } else {
+                        sb_push(chr(str_char_at(delims, (r - 1) % dn)))
                     }
-                    print_raw(all_lines[base + k])
-                    k = k + 1
                 }
+                sb_push_slice(raw, lstart[base + r], lend[base + r])
+                r = r + 1
             }
-            print_raw("\n")
+            sb_push("\n")
             f = f + 1
         }
     } else {
@@ -103,11 +116,6 @@ fn main(): i32 {
             if file_count[f] > max_lines { max_lines = file_count[f] }
             f = f + 1
         }
-        // Buffer the whole merged output in one StringBuilder, then a single
-        // write. The per-row Vec<String> + str_join allocation cost ~N mallocs
-        // on wide input; sb_push appends into one growing buffer (amortized
-        // cheap) and batches every newline into one syscall.
-        sb_new()
         let mut row: i32 = 0
         while row < max_lines {
             let mut col: i32 = 0
@@ -116,19 +124,19 @@ fn main(): i32 {
                     if dn == 1 {
                         sb_push(delims)
                     } else {
-                        let dc: i32 = str_char_at(delims, (col - 1) % dn)
-                        sb_push(chr(dc))
+                        sb_push(chr(str_char_at(delims, (col - 1) % dn)))
                     }
                 }
                 if row < file_count[col] {
-                    sb_push(all_lines[file_start[col] + row])
+                    let base: i32 = file_start[col]
+                    sb_push_slice(raws[col], lstart[base + row], lend[base + row])
                 }
                 col = col + 1
             }
             sb_push("\n")
             row = row + 1
         }
-        print_raw(sb_str())
     }
+    print_raw(sb_str())
     return 0
 }
