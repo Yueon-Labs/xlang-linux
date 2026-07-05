@@ -24,6 +24,23 @@ cmp_gnu "-c"  -c
 cmp_gnu "-d"  -d
 cmp_gnu "-u"  -u
 
+echo "== uniq -i (ignore case) vs GNU"
+# Mixed-case input so -i actually changes the grouping.
+ORIG_INPUT="$INPUT"
+INPUT=$'Apple\napple\nAPPLE\nbanana\napple\n'
+ci() {
+    local label="$1"; shift
+    local a b
+    a=$(printf '%s' "$INPUT" | "$U" "$@" 2>/dev/null)
+    b=$(printf '%s' "$INPUT" | uniq "$@" 2>/dev/null)
+    if [ "$a" = "$b" ]; then echo "  ok   $label"; PASS=$((PASS+1)); else echo "  FAIL $label"; echo "       x:[$(echo "$a"|tr '\n' '~')]"; echo "       g:[$(echo "$b"|tr '\n' '~')]"; FAIL=$((FAIL+1)); fi
+}
+ci "-i"   -i
+ci "-ci"  -ci
+ci "-di"  -di
+ci "-ui"  -ui
+INPUT="$ORIG_INPUT"
+
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
 [ "$FAIL" = 0 ]
