@@ -50,10 +50,11 @@ fn field_at(fields: Vec<String>, idx: i32): String {
     return fields[idx - 1]
 }
 
-// Emit a joined row: key, then FILE1's non-join fields, then FILE2's, separated
-// by sep.
+// Append a joined row to the shared output StringBuilder: key, then FILE1's
+// non-join fields, then FILE2's, separated by sep. Caller owns sb_new/print so
+// the whole join output is one growing buffer + one write (not a per-row
+// malloc + syscall).
 fn emit_join(key: String, f1: Vec<String>, jf1: i32, f2: Vec<String>, jf2: i32, sep: String): i32 {
-    sb_new()
     sb_push(key)
     let n1: i32 = vec_len(f1)
     let mut k: i32 = 1
@@ -74,7 +75,6 @@ fn emit_join(key: String, f1: Vec<String>, jf1: i32, f2: Vec<String>, jf2: i32, 
         m += 1
     }
     sb_push("\n")
-    print_raw(sb_str())
     return 0
 }
 
@@ -134,6 +134,9 @@ fn main(): i32 {
     let n2: i32 = vec_len(lines2)
     let mut i: i32 = 0
     let mut j: i32 = 0
+    // One output buffer for the whole join (emit_join appends into it); a
+    // single write at the end instead of a per-row malloc + syscall.
+    sb_new()
     while i < n1 && j < n2 {
         let f1: Vec<String> = split_fields(lines1[i], sep_char, use_ws)
         let f2: Vec<String> = split_fields(lines2[j], sep_char, use_ws)
@@ -167,31 +170,32 @@ fn main(): i32 {
             j = j_end
         } else if k1 < k2 {
             if a1 == 1 {
-                print_raw(lines1[i])
-                print_raw("\n")
+                sb_push(lines1[i])
+                sb_push("\n")
             }
             i += 1
         } else {
             if a2 == 1 {
-                print_raw(lines2[j])
-                print_raw("\n")
+                sb_push(lines2[j])
+                sb_push("\n")
             }
             j += 1
         }
     }
     if a1 == 1 {
         while i < n1 {
-            print_raw(lines1[i])
-            print_raw("\n")
+            sb_push(lines1[i])
+            sb_push("\n")
             i += 1
         }
     }
     if a2 == 1 {
         while j < n2 {
-            print_raw(lines2[j])
-            print_raw("\n")
+            sb_push(lines2[j])
+            sb_push("\n")
             j += 1
         }
     }
+    print_raw(sb_str())
     return 0
 }
