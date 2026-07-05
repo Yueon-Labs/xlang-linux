@@ -70,6 +70,35 @@ fn matches(line: String, pat: String, ignore_case: i32, invert: i32): i32 {
     return m
 }
 
+// Match the line text[start..end) against pat. Literal + non-i matches
+// directly on the buffer via str_find_range — NO per-line str_slice (the
+// hot path for `grep LITERAL file`). Other cases (-i, regex) slice the line.
+fn range_matches(text: String, start: i32, end: i32, pat: String, ign: i32, inv: i32, lit: bool): i32 {
+    let mut m: i32 = 0
+    if lit {
+        if ign == 1 {
+            let line: String = str_slice(text, start, end)
+            let hit: i32 = str_find(str_lower(line), str_lower(pat))
+            m = if hit >= 0 { 1 } else { 0 }
+        } else {
+            let hit: i32 = str_find_range(text, pat, start, end)
+            m = if hit >= 0 { 1 } else { 0 }
+        }
+    } else {
+        let line: String = str_slice(text, start, end)
+        if ign == 1 {
+            m = regex_match(str_lower(line), str_lower(pat))
+        } else {
+            m = regex_match(line, pat)
+        }
+    }
+    if inv == 1 {
+        if m == 1 { return 0 }
+        return 1
+    }
+    return m
+}
+
 // Context-mode grep (-A/-B/-C): two-pass. First collect all lines + match
 // flags, then print each line that is within ctx_b lines before or ctx_a lines
 // after any match, with "--" separators between non-contiguous groups.
@@ -144,6 +173,7 @@ fn grep_text_ctx(text: String, pat: String, name: String, show_name: i32, ign: i
 // handled here. Returns the number of matches.
 fn grep_text(text: String, pat: String, name: String, show_name: i32, ign: i32, inv: i32, want_n: i32, want_c: i32, want_o: i32, want_l: i32, ctx_a: i32, ctx_b: i32): i32 {
     let n: i32 = str_len(text)
+    let lit: bool = is_literal(pat)
     let mut start: i32 = 0
     let mut i: i32 = 0
     let mut lineno: i32 = 0
@@ -159,11 +189,13 @@ fn grep_text(text: String, pat: String, name: String, show_name: i32, ign: i32, 
         }
         if do_line == 1 {
             lineno = lineno + 1
-            let line: String = str_slice(text, start, i)
-            if matches(line, pat, ign, inv) == 1 {
+            if range_matches(text, start, i, pat, ign, inv, lit) == 1 {
                 count = count + 1
                 if want_c == 0 && want_l == 0 {
-                        if want_o == 1 {
+                    if want_o == 1 {
+                        // -o needs per-match positions; slice the line only here
+                        // (and only for matching lines), not for every line.
+                        let line: String = str_slice(text, start, i)
                         let mut lpat: String = pat
                         let mut lline: String = line
                         if ign == 1 {
@@ -172,7 +204,6 @@ fn grep_text(text: String, pat: String, name: String, show_name: i32, ign: i32, 
                         }
                         // Literal -o: str_find_from + fixed match length;
                         // regex -o: regex_find_from + regex_match_len.
-                        let lit: bool = is_literal(pat)
                         let lit_len: i32 = str_len(lpat)
                         let mut pos: i32 = 0
                         let line_len: i32 = str_len(line)
@@ -185,10 +216,10 @@ fn grep_text(text: String, pat: String, name: String, show_name: i32, ign: i32, 
                                 sb_push(":")
                             }
                             if want_n == 1 {
-                                sb_push(int_to_str(lineno))
+                                sb_push_i32(lineno)
                                 sb_push(":")
                             }
-                            sb_push(str_slice(line, mstart, mstart + mlen))
+                            sb_push_slice(line, mstart, mstart + mlen)
                             sb_push("\n")
                             pos = mstart + mlen
                             if mlen == 0 { pos = pos + 1 }
@@ -199,10 +230,12 @@ fn grep_text(text: String, pat: String, name: String, show_name: i32, ign: i32, 
                             sb_push(":")
                         }
                         if want_n == 1 {
-                            sb_push(int_to_str(lineno))
+                            sb_push_i32(lineno)
                             sb_push(":")
                         }
-                        sb_push(line)
+                        // Emit the line straight from the text buffer — no
+                        // per-line str_slice (the old sb_push(line) malloc'd).
+                        sb_push_slice(text, start, i)
                         sb_push("\n")
                     }
                 }
@@ -216,7 +249,7 @@ fn grep_text(text: String, pat: String, name: String, show_name: i32, ign: i32, 
             sb_push(name)
             sb_push(":")
         }
-        sb_push(int_to_str(count))
+        sb_push_i32(count)
         sb_push("\n")
     }
     return count
