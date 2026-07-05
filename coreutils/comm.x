@@ -51,45 +51,50 @@ fn main(): i32 {
     let b: Vec<String> = str_split(rb, "\n")
     let an: i32 = vec_len(a)
     let bn: i32 = vec_len(b)
+    // Buffer the whole output in one StringBuilder, then a single write —
+    // the merge emits 2-4 print_raw calls per line (content + leading tabs +
+    // newline); on large inputs that's a syscall storm. sb_push appends into
+    // one growing buffer and batches everything into one write.
+    sb_new()
     let mut i: i32 = 0
     let mut j: i32 = 0
     while i < an || j < bn {
         if i >= an {
             if suppress2 == 0 {
-                if suppress1 == 0 { print_raw("\t") }
-                print_raw(b[j])
-                print_raw("\n")
+                if suppress1 == 0 { sb_push("\t") }
+                sb_push(b[j])
+                sb_push("\n")
             }
             j = j + 1
         } else {
             if j >= bn {
                 if suppress1 == 0 {
-                    print_raw(a[i])
-                    print_raw("\n")
+                    sb_push(a[i])
+                    sb_push("\n")
                 }
                 i = i + 1
             } else {
                 let cmp: i32 = str_cmp(a[i], b[j])
                 if cmp < 0 {
                     if suppress1 == 0 {
-                        print_raw(a[i])
-                        print_raw("\n")
+                        sb_push(a[i])
+                        sb_push("\n")
                     }
                     i = i + 1
                 } else {
                     if cmp > 0 {
                         if suppress2 == 0 {
-                            if suppress1 == 0 { print_raw("\t") }
-                            print_raw(b[j])
-                            print_raw("\n")
+                            if suppress1 == 0 { sb_push("\t") }
+                            sb_push(b[j])
+                            sb_push("\n")
                         }
                         j = j + 1
                     } else {
                         if suppress3 == 0 {
-                            if suppress1 == 0 { print_raw("\t") }
-                            if suppress2 == 0 { print_raw("\t") }
-                            print_raw(a[i])
-                            print_raw("\n")
+                            if suppress1 == 0 { sb_push("\t") }
+                            if suppress2 == 0 { sb_push("\t") }
+                            sb_push(a[i])
+                            sb_push("\n")
                         }
                         i = i + 1
                         j = j + 1
@@ -98,5 +103,6 @@ fn main(): i32 {
             }
         }
     }
+    print_raw(sb_str())
     return 0
 }

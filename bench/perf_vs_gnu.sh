@@ -17,7 +17,7 @@ mkdir -p build bin
 
 # Build the xlang coreutils we benchmark (skip any that fail to build — some
 # use Linux-only directory/network builtins and won't link on Windows).
-TOOLS="cat tac rev head tail wc sort uniq tr cut fold nl grep base64 base32 md5sum sha256sum expand unexpand paste comm cate showall seq"
+TOOLS="cat tac rev head tail wc sort uniq tr cut fold nl grep base64 base32 md5sum sha256sum expand unexpand paste comm join cate showall seq"
 for t in $TOOLS; do
     if [ -f "coreutils/$t.x" ]; then
         "$XLANGC" c "coreutils/$t.x" -o "build/$t.c" >/dev/null 2>&1
@@ -29,6 +29,12 @@ N=${PERF_N:-200000}
 BEST=${PERF_BEST:-3}
 seq 1 "$N" | awk '{print "line-"$1 " word-"$1 " data "$1}' > build/perf_in.txt
 seq 1 "$N" | sort | uniq > build/perf_sorted.txt   # uniq needs sorted input
+# Two lexically-sorted files with a half-overlap, for comm (file args, not stdin).
+seq 1 "$N" | sort > build/perf_comm_a.txt
+seq $((N/2)) $((N + N/2)) | sort > build/perf_comm_b.txt
+# Field-separated files sorted on field 1, half-overlap, for join.
+seq 1 "$N" | awk '{print $1" a"$1}' | sort -k1,1 > build/perf_join_a.txt
+seq $((N/2)) $((N + N/2)) | awk '{print $1" b"$1}' | sort -k1,1 > build/perf_join_b.txt
 printf 'a\tb\tc\td\te\n' > build/perf_tab.txt
 head -c 1000000 build/perf_in.txt > build/perf_blob.txt   # for base64 / hashes
 B="$PWD/bin"
@@ -112,7 +118,12 @@ race "paste -s"       build/perf_in.txt  "$B/paste -s"       "paste -s"
 race "paste -s -d,"   build/perf_in.txt  "$B/paste -s -d ,"  "paste -s -d ,"
 # Parallel paste needs file args (not stdin); feed the same input twice.
 race "paste a b"      build/perf_in.txt  "$B/paste build/perf_in.txt build/perf_in.txt" "paste build/perf_in.txt build/perf_in.txt"
+# comm compares two sorted files (file args); dummy stdin is ignored.
+race "comm a b"       build/perf_sorted.txt "$B/comm build/perf_comm_a.txt build/perf_comm_b.txt" "comm build/perf_comm_a.txt build/perf_comm_b.txt"
+race "comm -3 a b"    build/perf_sorted.txt "$B/comm -3 build/perf_comm_a.txt build/perf_comm_b.txt" "comm -3 build/perf_comm_a.txt build/perf_comm_b.txt"
+# join merges two field-1-sorted files (file args); dummy stdin is ignored.
+race "join a b"       build/perf_sorted.txt "$B/join build/perf_join_a.txt build/perf_join_b.txt" "join build/perf_join_a.txt build/perf_join_b.txt"
 # seq generates its own output (ignores stdin); feed input only for the harness.
 race "seq 1 200000"   build/perf_in.txt "$B/seq 1 200000"    "seq 1 200000"
 echo "=== done ==="
-rm -f build/perf_in.txt build/perf_sorted.txt build/perf_tab.txt build/perf_blob.txt
+rm -f build/perf_in.txt build/perf_sorted.txt build/perf_comm_a.txt build/perf_comm_b.txt build/perf_join_a.txt build/perf_join_b.txt build/perf_tab.txt build/perf_blob.txt
