@@ -8,14 +8,25 @@ module main
 // lines via ranges_eq (no per-line str_slice) and emits via sb_push_slice
 // (no per-line malloc). The old str_slice-per-line was the 2.1× gap vs GNU.
 
-fn ranges_eq(s: String, a1: i32, b1: i32, a2: i32, b2: i32): i32 {
+// Compare s[a1..b1) and s[a2..b2). ign=1 folds ASCII A-Z→a-z first (uniq -i).
+fn ranges_eq(s: String, a1: i32, b1: i32, a2: i32, b2: i32, ign: i32): i32 {
     let l1: i32 = b1 - a1
     if l1 != b2 - a2 {
         return 0
     }
     let mut k: i32 = 0
     while k < l1 {
-        if str_char_at(s, a1 + k) != str_char_at(s, a2 + k) {
+        let mut c1: i32 = str_char_at(s, a1 + k)
+        let mut c2: i32 = str_char_at(s, a2 + k)
+        if ign == 1 {
+            if c1 >= 65 && c1 <= 90 {
+                c1 = c1 + 32
+            }
+            if c2 >= 65 && c2 <= 90 {
+                c2 = c2 + 32
+            }
+        }
+        if c1 != c2 {
             return 0
         }
         k = k + 1
@@ -54,6 +65,7 @@ fn main(): i32 {
     let mut want_c: bool = false
     let mut want_d: bool = false
     let mut want_u: bool = false
+    let mut want_i: bool = false
     let mut file: String = ""
     let mut i: i32 = 1
     while i < argc() {
@@ -66,6 +78,7 @@ fn main(): i32 {
                 if c == 99 { want_c = true }
                 if c == 100 { want_d = true }
                 if c == 117 { want_u = true }
+                if c == 105 { want_i = true }
                 k = k + 1
             }
         } else {
@@ -86,6 +99,7 @@ fn main(): i32 {
     let mut count: i32 = 0
     let mut have_run: bool = false
     let mut start: i32 = 0
+    let ign: i32 = if want_i { 1 } else { 0 }
     // Bulk newline scan via str_find_from (strchr for 1-char needle — fast on
     // all platforms) instead of the per-char str_char_at loop.
     while true {
@@ -99,7 +113,7 @@ fn main(): i32 {
             count = 1
             have_run = true
         } else {
-            if ranges_eq(s, start, nl, prev_start, prev_end) == 1 {
+            if ranges_eq(s, start, nl, prev_start, prev_end, ign) == 1 {
                 count = count + 1
             } else {
                 emit(s, prev_start, prev_end, count, want_c, want_d, want_u)
