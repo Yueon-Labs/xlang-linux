@@ -175,18 +175,16 @@ fn grep_text(text: String, pat: String, name: String, show_name: i32, ign: i32, 
     let n: i32 = str_len(text)
     let lit: bool = is_literal(pat)
     let mut start: i32 = 0
-    let mut i: i32 = 0
     let mut lineno: i32 = 0
     let mut count: i32 = 0
-    while i <= n {
+    while true {
+        // Bulk newline scan (str_find_from = memchr) instead of a per-char
+        // str_char_at loop — same trick as uniq/wc. i = end of the current line.
+        let nl: i32 = str_find_from(text, "\n", start)
+        let i: i32 = if nl < 0 { n } else { nl }
         // A line ends at a newline, or at EOF with trailing content (a final
         // newline does NOT create a phantom empty last line — matches GNU grep).
-        let mut do_line: i32 = 0
-        if i < n {
-            if str_char_at(text, i) == 10 { do_line = 1 }
-        } else {
-            if start < n { do_line = 1 }
-        }
+        let do_line: i32 = if nl >= 0 { 1 } else { if start < n { 1 } else { 0 } }
         if do_line == 1 {
             lineno = lineno + 1
             if range_matches(text, start, i, pat, ign, inv, lit) == 1 {
@@ -242,7 +240,7 @@ fn grep_text(text: String, pat: String, name: String, show_name: i32, ign: i32, 
             }
             start = i + 1
         }
-        i = i + 1
+        if nl < 0 { break }
     }
     if want_c == 1 {
         if show_name == 1 {
