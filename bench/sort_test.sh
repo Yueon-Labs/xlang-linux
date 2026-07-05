@@ -60,6 +60,19 @@ ckt "-t, -k2"      -t, -k2
 ckt "-t, -k2,2 -n" -t, -k2,2 -n
 ckt "-t, -k1,1"    -t, -k1,1
 
+echo "== sort -f (fold / ignore case) vs GNU"
+FOLDINPUT=$'banana\napple\nCherry\napple\nBanana\n'
+cf() {
+    local label="$1"; shift
+    local a b
+    a=$(printf '%s' "$FOLDINPUT" | "$S" "$@" 2>/dev/null)
+    b=$(printf '%s' "$FOLDINPUT" | sort "$@" 2>/dev/null)
+    if [ "$a" = "$b" ]; then echo "  ok   $label"; PASS=$((PASS+1)); else echo "  FAIL $label"; echo "       x:[$(echo "$a"|tr '\n' '~')]"; echo "       g:[$(echo "$b"|tr '\n' '~')]"; FAIL=$((FAIL+1)); fi
+}
+cf "-f"            -f
+cf "-fu"           -fu
+cf "-fur"          -fur
+
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
 [ "$FAIL" = 0 ]
