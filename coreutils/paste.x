@@ -36,11 +36,11 @@ fn main(): i32 {
             i = i + 1
         }
     }
-    let nf: i32 = vec_len(files)
-    if nf == 0 {
-        eprint_str("usage: paste [-d DELIMS] [-s] <file>...")
-        return 1
+    // GNU paste reads stdin when no file is given (and treats "-" as stdin).
+    if vec_len(files) == 0 {
+        files.push("-")
     }
+    let nf: i32 = vec_len(files)
 
     // Flat storage: all_lines has all lines from all files concatenated.
     // file_start[f] = index in all_lines where file f's lines begin.
@@ -50,7 +50,8 @@ fn main(): i32 {
     let file_count: Vec<i32> = vec_new()
     let mut fi: i32 = 0
     while fi < nf {
-        let lines: Vec<String> = str_split(str_trim(read_file(files[fi])), "
+        let raw: String = if files[fi] == "-" { read_stdin() } else { read_file(files[fi]) }
+        let lines: Vec<String> = str_split(str_trim(raw), "
 ")
         let ln: i32 = vec_len(lines)
         file_start.push(vec_len(all_lines))

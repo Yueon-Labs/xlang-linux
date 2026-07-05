@@ -36,6 +36,20 @@ a3=$("$P" "$ROOT/f1" "$ROOT/f2" "$ROOT/f3" 2>/dev/null)
 b3=$(paste "$ROOT/f1" "$ROOT/f2" "$ROOT/f3" 2>/dev/null)
 if [ "$a3" = "$b3" ]; then echo "  ok   3 files parallel"; PASS=$((PASS+1)); else echo "  FAIL 3 files"; FAIL=$((FAIL+1)); fi
 
+# stdin: GNU paste reads stdin when no file given, and "-" means stdin.
+cmp_stdin() {
+    local label="$1"; shift
+    local a b
+    a=$("$P" "$@" < "$ROOT/f1" 2>/dev/null)
+    b=$(paste "$@" < "$ROOT/f1" 2>/dev/null)
+    if [ "$a" = "$b" ]; then echo "  ok   $label"; PASS=$((PASS+1)); else echo "  FAIL $label"; FAIL=$((FAIL+1)); fi
+}
+echo "== stdin (no file ⇒ stdin)"
+cmp_stdin "stdin default"
+cmp_stdin "stdin -s"
+cmp_stdin "stdin -s -d,"
+cmp_stdin 'stdin "-"'
+
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
 rm -rf "$ROOT"
