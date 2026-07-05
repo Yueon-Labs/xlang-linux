@@ -59,7 +59,7 @@ jobs:
         run: |
           XL=/tmp/xlang/target/release/xlangc
           fail=0
-          for t in grep find ls wc diff dd timeout xsh head tail sed cat mkdir mv rm calc xargs strings sort tr uniq cut tee nl comm paste join column expr expand unexpand fold text_tools split_tsort seq stat od chmod ln_du touch env_base64 base64 base32 shuf misc_tools mktemp install csplit pathchk awk; do
+          for t in grep find ls wc diff dd timeout xsh head tail sed cat mkdir mv rm calc xargs strings sort tr uniq cut tee nl comm paste join column expr expand unexpand fold text_tools split_tsort seq stat od chmod ln_du touch env_base64 base64 base32 shuf printf misc_tools mktemp install csplit pathchk awk; do
             if bash "bench/${t}_test.sh" "$XL" >/tmp/ft.out 2>&1; then
               echo "PASS  ${t}_test.sh"
             else
