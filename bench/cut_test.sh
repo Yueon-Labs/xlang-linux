@@ -24,8 +24,29 @@ cmp_gnu "-f2,4"       -d: -f2,4
 cmp_gnu "-f1-3"       -d: -f1-3
 cmp_gnu "-f2-4"       -d: -f2-4
 cmp_gnu "-f1,3-5"     -d: -f1,3-5
+cmp_gnu "-f3- (open)" -d: -f3-
+cmp_gnu "-f-2 (open)" -d: -f-2
+cmp_gnu "-f1,1 (dedup)" -d: -f1,1
+cmp_gnu "-f3,1 (order)" -d: -f3,1
+cmp_gnu "-f1 --complement" -d: -f1 --complement
+cmp_gnu "-f2-4 --complement" -d: -f2-4 --complement
 cmp_gnu "-c1-3"       -c1-3
 cmp_gnu "-c2-"        -c2-
+cmp_gnu "-c2,5,7"     -c2,5,7
+cmp_gnu "-c1-3 --complement" -c1-3 --complement
+cmp_gnu "-b1-4"       -b1-4
+
+echo "== cut -s (only-delimited lines) vs GNU"
+ND=$'plain line\nx:y\n'
+cks() {
+    local label="$1"; shift
+    local a b
+    a=$(printf '%s' "$ND" | "$C" "$@" 2>/dev/null)
+    b=$(printf '%s' "$ND" | cut "$@" 2>/dev/null)
+    if [ "$a" = "$b" ]; then echo "  ok   $label"; PASS=$((PASS+1)); else echo "  FAIL $label"; echo "       x:[$(echo "$a"|tr '\n' '~')]"; echo "       g:[$(echo "$b"|tr '\n' '~')]"; FAIL=$((FAIL+1)); fi
+}
+cks "-f1 (no-delim passes)" -d: -f1
+cks "-f1 -s (no-delim skipped)" -d: -f1 -s
 
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
