@@ -17,10 +17,13 @@ struct SedCmd {
     addr_lo: i32
     addr_hi: i32
     have_addr: i32
+    addr_re: String
+    have_re: i32
     op: i32
     pat: String
     repl: String
     global: i32
+    nth: i32
 }
 
 fn is_digit(c: i32): bool {
@@ -34,54 +37,80 @@ fn is_digit(c: i32): bool {
 // expanding to the matched text. Match spans come from regex_find_from /
 // regex_match_len (xlang#98). Patterns without metacharacters behave as plain
 // literal substitution (all existing cases unchanged).
-fn substitute(line: String, pat: String, repl: String, global: i32): String {
+fn substitute(line: String, pat: String, repl: String, global: i32, nth: i32): String {
     let ln: i32 = str_len(line)
     sb_new()
     let mut i: i32 = 0
-    let mut did_one: bool = false
+    let mut count: i32 = 0
+    let mut done: i32 = 0
     while i <= ln {
-        let mut mstart: i32 = -1
-        if !did_one || global == 1 {
-            mstart = regex_find_from(line, pat, i)
+        if done == 1 {
+            break
         }
+        let mstart: i32 = regex_find_from(line, pat, i)
         if mstart < 0 || mstart > ln {
             sb_push_slice(line, i, ln)
+            done = 1
             break
         }
         let mlen: i32 = regex_match_len()
+        count = count + 1
         sb_push_slice(line, i, mstart)
-        let rn: i32 = str_len(repl)
-        let mut ri: i32 = 0
-        while ri < rn {
-            if str_char_at(repl, ri) == 38 {
-                sb_push_slice(line, mstart, mstart + mlen)
-            } else {
-                sb_push_char(str_char_at(repl, ri))
+        // Replace THIS match? With nth>0, only the Nth; else the 1st, or all (g).
+        let mut do_repl: i32 = 0
+        if nth > 0 {
+            if count == nth { do_repl = 1 }
+        } else {
+            if count == 1 || global == 1 { do_repl = 1 }
+        }
+        if do_repl == 1 {
+            let rn: i32 = str_len(repl)
+            let mut ri: i32 = 0
+            while ri < rn {
+                if str_char_at(repl, ri) == 38 {
+                    sb_push_slice(line, mstart, mstart + mlen)
+                } else {
+                    sb_push_char(str_char_at(repl, ri))
+                }
+                ri = ri + 1
             }
-            ri = ri + 1
+        } else {
+            sb_push_slice(line, mstart, mstart + mlen)
         }
         i = mstart + mlen
-        did_one = true
-        if global == 0 {
-            sb_push_slice(line, i, ln)
-            break
+        if nth > 0 {
+            if count >= nth {
+                sb_push_slice(line, i, ln)
+                done = 1
+            }
+        } else {
+            if global == 0 {
+                sb_push_slice(line, i, ln)
+                done = 1
+            }
         }
         // Zero-length match guard (e.g. `a*`): advance one char so we don't
         // loop forever, passing the char through unchanged.
-        if mlen == 0 {
+        if mlen == 0 && done == 0 {
             if i < ln {
                 sb_push_char(str_char_at(line, i))
                 i = i + 1
             } else {
-                break
+                done = 1
             }
         }
     }
     return str_slice(sb_str(), 0, str_len(sb_str()))
 }
 
-fn addr_matches(cmd: SedCmd, lineno: i32): bool {
-    if cmd.have_addr == 0 { return true }
+fn addr_matches(cmd: SedCmd, lineno: i32, line: String): bool {
+    if cmd.have_addr == 0 {
+        if cmd.have_re == 0 { return true }
+    }
+    if cmd.have_re == 1 {
+        if regex_match(line, cmd.addr_re) == 1 { return true }
+        return false
+    }
     if lineno < cmd.addr_lo { return false }
     if lineno > cmd.addr_hi { return false }
     return true
@@ -101,6 +130,8 @@ fn parse_script(script: String): Vec<SedCmd> {
         let mut addr_lo: i32 = 0
         let mut addr_hi: i32 = 0
         let mut have_addr: i32 = 0
+        let mut addr_re: String = ""
+        let mut have_re: i32 = 0
         if is_digit(str_char_at(script, pos)) {
             have_addr = 1
             while pos < sn {
@@ -123,12 +154,28 @@ fn parse_script(script: String): Vec<SedCmd> {
                 }
             }
         }
+        if have_addr == 0 {
+            if pos < sn {
+                if str_char_at(script, pos) == 47 {
+                    have_re = 1
+                    pos = pos + 1
+                    let re_start: i32 = pos
+                    while pos < sn {
+                        if str_char_at(script, pos) == 47 { break }
+                        pos = pos + 1
+                    }
+                    addr_re = str_slice(script, re_start, pos)
+                    if pos < sn { pos = pos + 1 }
+                }
+            }
+        }
         if pos >= sn { break }
         let op: i32 = str_char_at(script, pos)
         pos = pos + 1
         let mut pat: String = ""
         let mut repl: String = ""
         let mut glob: i32 = 0
+        let mut nth: i32 = 0
         if op == 115 || op == 121 {
             let sep: i32 = str_char_at(script, pos)
             pos = pos + 1
@@ -147,10 +194,19 @@ fn parse_script(script: String): Vec<SedCmd> {
             repl = str_slice(script, repl_start, pos)
             if pos < sn { pos = pos + 1 }
             if op == 115 {
-                if pos < sn {
-                    if str_char_at(script, pos) == 103 {
+                // Flags: g (global), or a number N (replace Nth occurrence).
+                while pos < sn {
+                    let fc: i32 = str_char_at(script, pos)
+                    if fc == 103 {
                         glob = 1
                         pos = pos + 1
+                    } else {
+                        if fc >= 48 && fc <= 57 {
+                            nth = nth * 10 + (fc - 48)
+                            pos = pos + 1
+                        } else {
+                            break
+                        }
                     }
                 }
             }
@@ -169,7 +225,7 @@ fn parse_script(script: String): Vec<SedCmd> {
             }
             pat = str_slice(script, text_start, pos)
         }
-        cmds.push(SedCmd { addr_lo: addr_lo, addr_hi: addr_hi, have_addr: have_addr, op: op, pat: pat, repl: repl, global: glob })
+        cmds.push(SedCmd { addr_lo: addr_lo, addr_hi: addr_hi, have_addr: have_addr, addr_re: addr_re, have_re: have_re, op: op, pat: pat, repl: repl, global: glob, nth: nth })
     }
     return cmds
 }
@@ -244,9 +300,9 @@ fn main(): i32 {
                 let mut c: i32 = 0
                 while c < ncmds {
                     let cmd: SedCmd = cmds[c]
-                    if addr_matches(cmd, lineno) {
+                    if addr_matches(cmd, lineno, cur) {
                         if cmd.op == 115 {
-                            cur = substitute(cur, cmd.pat, cmd.repl, cmd.global)
+                            cur = substitute(cur, cmd.pat, cmd.repl, cmd.global, cmd.nth)
                         }
                         if cmd.op == 121 {
                             cur = str_translate(cur, cmd.pat, cmd.repl)

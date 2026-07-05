@@ -37,6 +37,11 @@ ck "w=80 mixed (default-ish)" build/f_in3.txt "-w 80" "-w 80"
 ck "no -w (default 80)"   build/f_in3.txt ""      ""
 ck "empty input"          build/f_empty.txt "-w 10" "-w 10"
 
+echo "== fold -s (break at blanks)"
+ck "w=12 -s words"  build/f_in2.txt "-w 12 -s" "-w 12 -s"
+ck "w=10 -s words"  build/f_in2.txt "-w 10 -s" "-w 10 -s"
+ck "w=7 -s mixed"   build/f_in3.txt "-w 7 -s"  "-w 7 -s"
+
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
 [ "$FAIL" = 0 ]
