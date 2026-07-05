@@ -84,19 +84,19 @@ fn grep_text_ctx(text: String, pat: String, name: String, show_name: i32, ign: i
             if mf[li] == 1 { count = count + 1 }
             if last_pr >= 0 {
                 if lnums[li] > last_pr + 1 {
-                    print_raw("--\n")
+                    sb_push("--\n")
                 }
             }
             if show_name == 1 {
-                print_raw(name)
-                print_raw(":")
+                sb_push(name)
+                sb_push(":")
             }
             if want_n == 1 {
-                print_raw(int_to_str(lnums[li]))
-                print_raw(":")
+                sb_push(int_to_str(lnums[li]))
+                sb_push(":")
             }
-            print_raw(lines[li])
-            print_raw("\n")
+            sb_push(lines[li])
+            sb_push("\n")
             last_pr = lnums[li]
         }
         li = li + 1
@@ -141,29 +141,29 @@ fn grep_text(text: String, pat: String, name: String, show_name: i32, ign: i32, 
                             if mstart < 0 { break }
                             let mlen: i32 = regex_match_len()
                             if show_name == 1 {
-                                print_raw(name)
-                                print_raw(":")
+                                sb_push(name)
+                                sb_push(":")
                             }
                             if want_n == 1 {
-                                print_raw(int_to_str(lineno))
-                                print_raw(":")
+                                sb_push(int_to_str(lineno))
+                                sb_push(":")
                             }
-                            print_raw(str_slice(line, mstart, mstart + mlen))
-                            print_raw("\n")
+                            sb_push(str_slice(line, mstart, mstart + mlen))
+                            sb_push("\n")
                             pos = mstart + mlen
                             if mlen == 0 { pos = pos + 1 }
                         }
                     } else {
                         if show_name == 1 {
-                            print_raw(name)
-                            print_raw(":")
+                            sb_push(name)
+                            sb_push(":")
                         }
                         if want_n == 1 {
-                            print_raw(int_to_str(lineno))
-                            print_raw(":")
+                            sb_push(int_to_str(lineno))
+                            sb_push(":")
                         }
-                        print_raw(line)
-                        print_raw("\n")
+                        sb_push(line)
+                        sb_push("\n")
                     }
                 }
             }
@@ -173,11 +173,11 @@ fn grep_text(text: String, pat: String, name: String, show_name: i32, ign: i32, 
     }
     if want_c == 1 {
         if show_name == 1 {
-            print_raw(name)
-            print_raw(":")
+            sb_push(name)
+            sb_push(":")
         }
-        print_raw(int_to_str(count))
-        print_raw("\n")
+        sb_push(int_to_str(count))
+        sb_push("\n")
     }
     return count
 }
@@ -190,8 +190,8 @@ fn grep_file(path: String, pat: String, show_name: i32, ign: i32, inv: i32, want
     let count: i32 = grep_text(text, pat, path, show_name, ign, inv, want_n, want_c, want_o, want_l, ctx_a, ctx_b)
     if want_l == 1 {
         if count > 0 {
-            print_raw(path)
-            print_raw("\n")
+            sb_push(path)
+            sb_push("\n")
         }
     }
     return count
@@ -289,20 +289,28 @@ fn main(): i32 {
     ai = ai + 1
     let nfiles: i32 = argc() - ai
 
+    // Buffer all stdout (matches / -o / -c / -l / context) into one
+    // StringBuilder, flushed once at the end. Every match previously cost
+    // 2-4 print_raw syscalls; on a file with many matches that dominates.
+    // Errors stay on stderr via eprint_str, untouched. Order is preserved.
+    sb_new()
+
     // stdin case: no files.
     if nfiles == 0 {
         let text: String = read_stdin()
         if ctx_a > 0 || ctx_b > 0 {
             let rc: i32 = grep_text_ctx(text, pat, "(standard input)", 0, ign, inv, want_n, ctx_a, ctx_b)
+            print_raw(sb_str())
             if rc > 0 { return 0 }
             return 1
         }
         let rc: i32 = grep_text(text, pat, "", 0, ign, inv, want_n, want_c, want_o, want_l, ctx_a, ctx_b)
         if want_l == 1 {
             if rc > 0 {
-                print_raw("(standard input)\n")
+                sb_push("(standard input)\n")
             }
         }
+        print_raw(sb_str())
         if rc > 0 { return 0 }
         return 1
     }
@@ -329,6 +337,7 @@ fn main(): i32 {
         ai = ai + 1
     }
 
+    print_raw(sb_str())
     if total > 0 { return 0 }
     return 1
 }
