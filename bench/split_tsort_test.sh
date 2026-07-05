@@ -15,15 +15,17 @@ echo "== split"
 ROOT="$(mktemp -d)"
 seq 1 10 > "$ROOT/input"
 cd "$ROOT"
-/tmp/xsplit input 3 >/dev/null 2>&1
-nfiles=$(ls xsplit_* 2>/dev/null | wc -l)
-lines_0=$(cat xsplit_0 2>/dev/null | wc -l)
-lines_1=$(cat xsplit_1 2>/dev/null | wc -l)
-total=$(cat xsplit_* | wc -l)
-if [ "$nfiles" -eq 4 ] && [ "$lines_0" -eq 3 ] && [ "$lines_1" -eq 3 ] && [ "$total" -eq 10 ]; then
-    echo "  ok   split 10 lines / 3 = 4 files (3+3+3+1)"; PASS=$((PASS+1))
+# GNU syntax: -l LINES, prefix, alpha suffix (aa, ab, ...). Verify vs GNU.
+/tmp/xsplit -l 3 input s_ >/dev/null 2>&1
+split -l 3 input g_ >/dev/null 2>&1
+xn=$(ls s_* 2>/dev/null | wc -l)
+gn=$(ls g_* 2>/dev/null | wc -l)
+xsum=$(cat s_* 2>/dev/null | md5sum | cut -d' ' -f1)
+gsum=$(cat g_* 2>/dev/null | md5sum | cut -d' ' -f1)
+if [ "$xn" -eq "$gn" ] && [ "$xsum" = "$gsum" ] && [ "$xn" -eq 4 ]; then
+    echo "  ok   split -l 3 matches GNU (4 files, content)"; PASS=$((PASS+1))
 else
-    echo "  FAIL split (files=$nfiles l0=$lines_0 l1=$lines_1 total=$total)"; FAIL=$((FAIL+1))
+    echo "  FAIL split (xfiles=$xn gfiles=$gn)"; FAIL=$((FAIL+1))
 fi
 cd - >/dev/null
 rm -rf "$ROOT"
