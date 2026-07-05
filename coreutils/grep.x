@@ -17,15 +17,51 @@ module main
 // behave as plain substring search. stdin when no file given. Multi-file / -r /
 // -H => "file:line:..." prefix.
 
-// Does `pat` (a POSIX extended regex) match anywhere in `line`? -i folds both
-// sides to lowercase first (correct for literal-ish patterns; char-class ranges
-// under -i are approximate — use explicit [Aa]-style classes).
+// Does `pat` contain a regex metacharacter? If not, it's a plain substring and
+// we can skip the regex engine (strstr via str_find is far faster than
+// regcomp/regexec) — this is the common grep case.
+fn is_literal(pat: String): bool {
+    let n: i32 = str_len(pat)
+    let mut i: i32 = 0
+    while i < n {
+        let c: i32 = str_char_at(pat, i)
+        if c == 46 { return false }
+        if c == 42 { return false }
+        if c == 43 { return false }
+        if c == 63 { return false }
+        if c == 91 { return false }
+        if c == 93 { return false }
+        if c == 40 { return false }
+        if c == 41 { return false }
+        if c == 124 { return false }
+        if c == 123 { return false }
+        if c == 125 { return false }
+        if c == 94 { return false }
+        if c == 36 { return false }
+        if c == 92 { return false }
+        i = i + 1
+    }
+    return true
+}
+
+// Does `pat` match anywhere in `line`? Literal patterns use str_find (strstr);
+// regex patterns use the POSIX engine. -i folds both sides to lowercase first.
 fn matches(line: String, pat: String, ignore_case: i32, invert: i32): i32 {
     let mut m: i32 = 0
-    if ignore_case == 1 {
-        m = regex_match(str_lower(line), str_lower(pat))
+    if is_literal(pat) {
+        if ignore_case == 1 {
+            let hit: i32 = str_find(str_lower(line), str_lower(pat))
+            m = if hit >= 0 { 1 } else { 0 }
+        } else {
+            let hit: i32 = str_find(line, pat)
+            m = if hit >= 0 { 1 } else { 0 }
+        }
     } else {
-        m = regex_match(line, pat)
+        if ignore_case == 1 {
+            m = regex_match(str_lower(line), str_lower(pat))
+        } else {
+            m = regex_match(line, pat)
+        }
     }
     if invert == 1 {
         if m == 1 { return 0 }
@@ -134,12 +170,16 @@ fn grep_text(text: String, pat: String, name: String, show_name: i32, ign: i32, 
                             lpat = str_lower(pat)
                             lline = str_lower(line)
                         }
+                        // Literal -o: str_find_from + fixed match length;
+                        // regex -o: regex_find_from + regex_match_len.
+                        let lit: bool = is_literal(pat)
+                        let lit_len: i32 = str_len(lpat)
                         let mut pos: i32 = 0
                         let line_len: i32 = str_len(line)
                         while pos <= line_len {
-                            let mstart: i32 = regex_find_from(lline, lpat, pos)
+                            let mstart: i32 = if lit { str_find_from(lline, lpat, pos) } else { regex_find_from(lline, lpat, pos) }
                             if mstart < 0 { break }
-                            let mlen: i32 = regex_match_len()
+                            let mlen: i32 = if lit { lit_len } else { regex_match_len() }
                             if show_name == 1 {
                                 sb_push(name)
                                 sb_push(":")
