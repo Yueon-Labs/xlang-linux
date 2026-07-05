@@ -127,11 +127,36 @@ fn main(): i32 {
             ni = ni + 1
         }
     }
+    // Any node not yet ordered is part of a cycle (indeg never reached 0).
+    // GNU tsort still outputs them (breaking the cycle), warns, and exits 1.
+    let mut had_cycle: i32 = 0
+    let mut ci: i32 = 0
+    while ci < node_count {
+        let mut in_order: i32 = 0
+        let mut oi2: i32 = 0
+        while oi2 < vec_len(order) {
+            if order[oi2] == ci {
+                in_order = 1
+            }
+            oi2 = oi2 + 1
+        }
+        if in_order == 0 {
+            order.push(ci)
+            had_cycle = 1
+        }
+        ci = ci + 1
+    }
+    if had_cycle == 1 {
+        eprint_str("tsort: input contains a loop")
+    }
     let mut oi: i32 = 0
     while oi < vec_len(order) {
         print_raw(nodes[order[oi]])
         print_raw("\n")
         oi = oi + 1
+    }
+    if had_cycle == 1 {
+        return 1
     }
     return 0
 }
