@@ -17,7 +17,7 @@ mkdir -p build bin
 
 # Build the xlang coreutils we benchmark (skip any that fail to build — some
 # use Linux-only directory/network builtins and won't link on Windows).
-TOOLS="cat tac rev head tail wc sort uniq tr cut fold nl grep base64 base32 md5sum sha256sum expand unexpand paste comm join cate showall seq"
+TOOLS="cat tac rev head tail wc sort uniq tr cut fold nl grep base64 base32 md5sum sha256sum expand unexpand paste comm join factor cate showall seq"
 for t in $TOOLS; do
     if [ -f "coreutils/$t.x" ]; then
         "$XLANGC" c "coreutils/$t.x" -o "build/$t.c" >/dev/null 2>&1
@@ -35,6 +35,8 @@ seq $((N/2)) $((N + N/2)) | sort > build/perf_comm_b.txt
 # Field-separated files sorted on field 1, half-overlap, for join.
 seq 1 "$N" | awk '{print $1" a"$1}' | sort -k1,1 > build/perf_join_a.txt
 seq $((N/2)) $((N + N/2)) | awk '{print $1" b"$1}' | sort -k1,1 > build/perf_join_b.txt
+# Plain integers 1..N for factor (reads stdin).
+seq 1 "$N" > build/perf_factor.txt
 printf 'a\tb\tc\td\te\n' > build/perf_tab.txt
 head -c 1000000 build/perf_in.txt > build/perf_blob.txt   # for base64 / hashes
 B="$PWD/bin"
@@ -123,7 +125,9 @@ race "comm a b"       build/perf_sorted.txt "$B/comm build/perf_comm_a.txt build
 race "comm -3 a b"    build/perf_sorted.txt "$B/comm -3 build/perf_comm_a.txt build/perf_comm_b.txt" "comm -3 build/perf_comm_a.txt build/perf_comm_b.txt"
 # join merges two field-1-sorted files (file args); dummy stdin is ignored.
 race "join a b"       build/perf_sorted.txt "$B/join build/perf_join_a.txt build/perf_join_b.txt" "join build/perf_join_a.txt build/perf_join_b.txt"
+# factor reads integers from stdin.
+race "factor 1..N"    build/perf_factor.txt "$B/factor" "factor"
 # seq generates its own output (ignores stdin); feed input only for the harness.
 race "seq 1 200000"   build/perf_in.txt "$B/seq 1 200000"    "seq 1 200000"
 echo "=== done ==="
-rm -f build/perf_in.txt build/perf_sorted.txt build/perf_comm_a.txt build/perf_comm_b.txt build/perf_join_a.txt build/perf_join_b.txt build/perf_tab.txt build/perf_blob.txt
+rm -f build/perf_in.txt build/perf_sorted.txt build/perf_comm_a.txt build/perf_comm_b.txt build/perf_join_a.txt build/perf_join_b.txt build/perf_factor.txt build/perf_tab.txt build/perf_blob.txt
