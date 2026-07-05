@@ -27,11 +27,24 @@ cmp_gnu() {  # cmp_gnu <label> <args...>  (exact, order-significant)
 echo "== vs GNU wc (exact)"
 cmp_gnu "single -l"      -l f1
 cmp_gnu "single default" f1
+cmp_gnu "single -m"      -m f1
 cmp_gnu "multi default"  f1 f2
 cmp_gnu "multi -l"       -l f1 f2
 cmp_gnu "multi -w"       -w f1 f2
 cmp_gnu "multi -lw"      -lw f1 f2
 cmp_gnu "single -L"      -L f2
+
+echo "== stdin (pipe) — GNU pads multi-count to min width 7"
+cmp_stdin() {  # cmp_stdin <label> <input> <args...>
+    local label="$1" inp="$2"; shift 2
+    local a b
+    a=$(printf '%s' "$inp" | LC_ALL=C "$W" "$@" 2>/dev/null)
+    b=$(printf '%s' "$inp" | LC_ALL=C wc "$@" 2>/dev/null)
+    if [ "$a" = "$b" ]; then echo "  ok   $label"; PASS=$((PASS+1)); else echo "  FAIL $label"; echo "       xlang: |$a|"; echo "       gnu:   |$b|"; FAIL=$((FAIL+1)); fi
+}
+cmp_stdin "stdin default" $'a b\nc d e\n'
+cmp_stdin "stdin -l"      $'a b\nc d e\n' -l
+cmp_stdin "stdin -m"      $'a b\nc d e\n' -m
 
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
