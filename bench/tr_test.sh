@@ -25,6 +25,8 @@ cmp_gnu "delete -d"     -d 'aeiou'
 cmp_gnu "delete range"  -d 'a-z'
 cmp_gnu "squeeze -s"    -s ' '
 cmp_gnu "squeeze range" -s 'a-z'
+cmp_gnu "pad SET2 (aeiou→*)" 'aeiou' '*'
+cmp_gnu "pad SET2 (elo→X)"  'elo' 'X'
 
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"

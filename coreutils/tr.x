@@ -99,6 +99,19 @@ fn main(): i32 {
         if complement {
             result = str_translate_complement(s, set1, set2)
         } else {
+            // GNU: if SET2 is shorter than SET1, repeat SET2's last char to
+            // fill — `tr aeiou '*'` → all vowels map to '*', `tr abc 12` →
+            // "122" (c also maps to 2).
+            let l1: i32 = str_len(set1)
+            let l2: i32 = str_len(set2)
+            if l2 > 0 && l1 > l2 {
+                let last: String = str_slice(set2, l2 - 1, l2)
+                let mut k: i32 = l2
+                while k < l1 {
+                    set2 = str_concat(set2, last)
+                    k = k + 1
+                }
+            }
             result = str_translate(s, set1, set2)
         }
         if squeeze_mode {
