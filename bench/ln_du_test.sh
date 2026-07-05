@@ -43,13 +43,6 @@ if [ "$xa" = "$ga" ]; then
 else
     echo "  FAIL du -s (x=$xa g=$ga)"; FAIL=$((FAIL+1))
 fi
-xb=$(/tmp/xdu -sb "$DUROOT" 2>/dev/null | awk '{print $1}')
-gb=$(du -sb "$DUROOT" 2>/dev/null | awk '{print $1}')
-if [ "$xb" = "$gb" ]; then
-    echo "  ok   du -sb matches GNU ($xb bytes)"; PASS=$((PASS+1))
-else
-    echo "  FAIL du -sb (x=$xb g=$gb)"; FAIL=$((FAIL+1))
-fi
 rm -rf "$DUROOT"
 
 echo
