@@ -29,6 +29,22 @@ cmp_gnu "5 != 6"     5 "!=" 6
 cmp_gnu "10 >= 10"   10 ">=" 10
 cmp_gnu "1 + 2 + 3"  1 + 2 + 3
 
+echo "== precedence + parens"
+cmp_gnu "5 + 2 * 3"  5 + 2 \* 3
+cmp_gnu "(5+2)*3"    \( 5 + 2 \) \* 3
+cmp_gnu "2*3+5"      2 \* 3 + 5
+
+echo "== string comparison + regex + functions"
+cmp_gnu "abc < def"   abc \< def
+cmp_gnu "abc = abc"   abc = abc
+cmp_gnu "regex :"     abc : "a.c"
+cmp_gnu "regex len"   abcdef : "a.*"
+cmp_gnu "length"      length abcde
+cmp_gnu "substr"      substr abcdef 2 3
+cmp_gnu "index"       index abcdef cd
+cmp_gnu "and"         3 \& 7
+cmp_gnu "or"          0 \| 5
+
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
 [ "$FAIL" = 0 ]
