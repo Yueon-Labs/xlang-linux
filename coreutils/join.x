@@ -8,6 +8,11 @@ module main
 //   -2 F   join field of FILE2
 //   -t C   single-char field separator (default: whitespace runs)
 //   -a 1|-a 2   also emit unpairable lines from that file
+//
+// All lines are split into fields ONCE at load time, stored in flat arrays
+// (fields / fstart / fcount) — the merge reads pre-split fields instead of
+// re-splitting each line up to 3× (key compare + run-find + cross-product
+// emit). -a prints the original raw line, so the line text is kept too.
 
 
 // Split a line into fields by a separator. use_ws=1 → runs of space/tab;
@@ -42,35 +47,32 @@ fn split_fields(line: String, sep_char: i32, use_ws: i32): Vec<String> {
     return fields
 }
 
-// 1-indexed field access; "" if out of range.
-fn field_at(fields: Vec<String>, idx: i32): String {
-    let nf: i32 = vec_len(fields)
+// 1-indexed field access into a flat field array; "" if out of range.
+// `start` is where the line's fields begin, `count` how many it has.
+fn flat_field(all: Vec<String>, start: i32, count: i32, idx: i32): String {
     if idx < 1 { return "" }
-    if idx > nf { return "" }
-    return fields[idx - 1]
+    if idx > count { return "" }
+    return all[start + idx - 1]
 }
 
 // Append a joined row to the shared output StringBuilder: key, then FILE1's
-// non-join fields, then FILE2's, separated by sep. Caller owns sb_new/print so
-// the whole join output is one growing buffer + one write (not a per-row
-// malloc + syscall).
-fn emit_join(key: String, f1: Vec<String>, jf1: i32, f2: Vec<String>, jf2: i32, sep: String): i32 {
+// non-join fields, then FILE2's, separated by sep. Fields come from the flat
+// pre-split arrays (start1/count1, start2/count2). Caller owns sb_new/print.
+fn emit_join(key: String, all1: Vec<String>, start1: i32, count1: i32, jf1: i32, all2: Vec<String>, start2: i32, count2: i32, jf2: i32, sep: String): i32 {
     sb_push(key)
-    let n1: i32 = vec_len(f1)
     let mut k: i32 = 1
-    while k <= n1 {
+    while k <= count1 {
         if k != jf1 {
             sb_push(sep)
-            sb_push(f1[k - 1])
+            sb_push(all1[start1 + k - 1])
         }
         k += 1
     }
-    let n2: i32 = vec_len(f2)
     let mut m: i32 = 1
-    while m <= n2 {
+    while m <= count2 {
         if m != jf2 {
             sb_push(sep)
-            sb_push(f2[m - 1])
+            sb_push(all2[start2 + m - 1])
         }
         m += 1
     }
@@ -126,42 +128,74 @@ fn main(): i32 {
     if use_ws == 0 {
         sep = chr(sep_char)
     }
+    // Raw lines (kept for -a, which prints them verbatim).
     let lines1: Vec<String> = str_split(str_trim(read_file(fa)), "
 ")
     let lines2: Vec<String> = str_split(str_trim(read_file(fb)), "
 ")
     let n1: i32 = vec_len(lines1)
     let n2: i32 = vec_len(lines2)
+
+    // Pre-split every line's fields ONCE into flat arrays. fstart[k]/fcount[k]
+    // locate line k's fields within the flat `fields` vector — the merge reads
+    // these instead of re-splitting each line 3× (key / run-find / emit).
+    let fields1: Vec<String> = vec_new()
+    let fstart1: Vec<i32> = vec_new()
+    let fcount1: Vec<i32> = vec_new()
+    let fields2: Vec<String> = vec_new()
+    let fstart2: Vec<i32> = vec_new()
+    let fcount2: Vec<i32> = vec_new()
+    let mut li: i32 = 0
+    while li < n1 {
+        fstart1.push(vec_len(fields1))
+        let lf: Vec<String> = split_fields(lines1[li], sep_char, use_ws)
+        let nf: i32 = vec_len(lf)
+        let mut kk: i32 = 0
+        while kk < nf {
+            fields1.push(lf[kk])
+            kk += 1
+        }
+        fcount1.push(nf)
+        li += 1
+    }
+    li = 0
+    while li < n2 {
+        fstart2.push(vec_len(fields2))
+        let lf: Vec<String> = split_fields(lines2[li], sep_char, use_ws)
+        let nf: i32 = vec_len(lf)
+        let mut kk: i32 = 0
+        while kk < nf {
+            fields2.push(lf[kk])
+            kk += 1
+        }
+        fcount2.push(nf)
+        li += 1
+    }
+
     let mut i: i32 = 0
     let mut j: i32 = 0
     // One output buffer for the whole join (emit_join appends into it); a
     // single write at the end instead of a per-row malloc + syscall.
     sb_new()
     while i < n1 && j < n2 {
-        let f1: Vec<String> = split_fields(lines1[i], sep_char, use_ws)
-        let f2: Vec<String> = split_fields(lines2[j], sep_char, use_ws)
-        let k1: String = field_at(f1, jf1)
-        let k2: String = field_at(f2, jf2)
+        let k1: String = flat_field(fields1, fstart1[i], fcount1[i], jf1)
+        let k2: String = flat_field(fields2, fstart2[j], fcount2[j], jf2)
         if k1 == k2 {
             // Equal keys: GNU join is a cross-product over the consecutive
             // runs of equal keys in each file (1-to-many / many-to-many).
             let mut i_end: i32 = i
             while i_end < n1 {
-                let g: Vec<String> = split_fields(lines1[i_end], sep_char, use_ws)
-                if field_at(g, jf1) == k1 { i_end += 1 } else { break }
+                if flat_field(fields1, fstart1[i_end], fcount1[i_end], jf1) == k1 { i_end += 1 } else { break }
             }
             let mut j_end: i32 = j
             while j_end < n2 {
-                let g: Vec<String> = split_fields(lines2[j_end], sep_char, use_ws)
-                if field_at(g, jf2) == k2 { j_end += 1 } else { break }
+                if flat_field(fields2, fstart2[j_end], fcount2[j_end], jf2) == k2 { j_end += 1 } else { break }
             }
             let mut gi: i32 = i
             while gi < i_end {
-                let f1g: Vec<String> = split_fields(lines1[gi], sep_char, use_ws)
                 let mut gj: i32 = j
                 while gj < j_end {
-                    let f2g: Vec<String> = split_fields(lines2[gj], sep_char, use_ws)
-                    emit_join(k1, f1g, jf1, f2g, jf2, sep)
+                    emit_join(k1, fields1, fstart1[gi], fcount1[gi], jf1, fields2, fstart2[gj], fcount2[gj], jf2, sep)
                     gj += 1
                 }
                 gi += 1
