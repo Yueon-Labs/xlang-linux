@@ -15,27 +15,41 @@ fn head_file_bytes(path: String, limit: i32): i32 {
     return 0
 }
 
-// Print the first `limit` lines of path ("" = stdin).
+// Print the first `limit` lines of path ("" = stdin). Negative limit means
+// "all but the last |limit| lines"; 0 prints nothing.
 fn head_file(path: String, limit: i32): i32 {
     let s: String = if str_len(path) > 0 { read_file(path) } else { read_stdin() }
     let n: i32 = str_len(s)
+    let mut k: i32 = limit
+    if limit < 0 {
+        let abs: i32 = 0 - limit
+        let mut total: i32 = count_newlines(s)
+        if n > 0 {
+            if str_char_at(s, n - 1) != 10 { total = total + 1 }
+        }
+        k = total - abs
+        if k < 0 { k = 0 }
+    }
+    if k == 0 {
+        return 0
+    }
     let mut printed: i32 = 0
     let mut start: i32 = 0
-    let mut k: i32 = 0
-    while k < n {
-        if str_char_at(s, k) == 10 {
-            print_raw(str_slice(s, start, k))
+    let mut i: i32 = 0
+    while i < n {
+        if str_char_at(s, i) == 10 {
+            print_raw(str_slice(s, start, i))
             print_raw("\n")
             printed = printed + 1
-            start = k + 1
-            if printed >= limit {
+            start = i + 1
+            if printed >= k {
                 return 0
             }
         }
-        k = k + 1
+        i = i + 1
     }
     if start < n {
-        if printed < limit {
+        if printed < k {
             print_raw(str_slice(s, start, n))
             print_raw("\n")
         }

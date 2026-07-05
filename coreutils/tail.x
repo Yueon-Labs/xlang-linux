@@ -13,8 +13,9 @@ fn tail_file_bytes(path: String, limit: i32): i32 {
     return 0
 }
 
-// Print the last `limit` lines of path ("" = stdin).
-fn tail_file(path: String, limit: i32): i32 {
+// Print the last `limit` lines, or from line `from_line` (1-indexed) onward
+// when from_line > 0, of path ("" = stdin).
+fn tail_file(path: String, limit: i32, from_line: i32): i32 {
     let s: String = if str_len(path) > 0 { read_file(path) } else { read_stdin() }
     let n: i32 = str_len(s)
     let lines: Vec<String> = vec_new()
@@ -32,8 +33,13 @@ fn tail_file(path: String, limit: i32): i32 {
     }
     let count: i32 = vec_len(lines)
     let mut j: i32 = 0
-    if count > limit {
-        j = count - limit
+    if from_line > 0 {
+        j = from_line - 1
+        if j < 0 { j = 0 }
+    } else {
+        if count > limit {
+            j = count - limit
+        }
     }
     while j < count {
         print_raw(lines[j])
@@ -48,6 +54,7 @@ fn main(): i32 {
     let mut byte_mode: i32 = 0
     let mut want_v: i32 = 0
     let mut want_q: i32 = 0
+    let mut from_line: i32 = 0
     let files: Vec<String> = vec_new()
     let mut i: i32 = 1
     while i < argc() {
@@ -66,12 +73,19 @@ fn main(): i32 {
                     }
                 }
             } else if str_char_at(a, 1) == 110 {
+                let mut v: String = ""
                 if la > 2 {
-                    limit = str_to_int(str_slice(a, 2, la))
+                    v = str_slice(a, 2, la)
                 } else {
                     i = i + 1
-                    if i < argc() {
-                        limit = str_to_int(argv(i))
+                    if i < argc() { v = argv(i) }
+                }
+                // +N → from line N; plain N → last N lines.
+                if str_len(v) > 0 {
+                    if str_char_at(v, 0) == 43 {
+                        from_line = str_to_int(str_slice(v, 1, str_len(v)))
+                    } else {
+                        limit = str_to_int(v)
                     }
                 }
             } else {
@@ -99,7 +113,7 @@ fn main(): i32 {
         if byte_mode == 1 {
             tail_file_bytes("", limit)
         } else {
-            tail_file("", limit)
+            tail_file("", limit, from_line)
         }
         return 0
     }
@@ -121,7 +135,7 @@ fn main(): i32 {
         if byte_mode == 1 {
             tail_file_bytes(files[p], limit)
         } else {
-            tail_file(files[p], limit)
+            tail_file(files[p], limit, from_line)
         }
         p = p + 1
     }

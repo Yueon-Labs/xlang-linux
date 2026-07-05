@@ -30,6 +30,8 @@ cmp_gnu "-v single"     -v a
 cmp_gnu "-q multi"      -q a b
 cmp_gnu "byte -c 4"     -c 4 c
 cmp_gnu "byte -c4"      -c4 c
+cmp_gnu "-n +2 (from line 2)" -n +2 a
+cmp_gnu "-n +4 (from line 4)" -n +4 a
 
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
