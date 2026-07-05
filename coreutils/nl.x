@@ -53,17 +53,17 @@ fn main(): i32 {
         let nl: i32 = str_find_from(s, "\n", start)
         if nl < 0 {
             if start < n {
-                sb_push(pad_int(lineno, width))
+                sb_push_i32_pad(lineno, width)
                 sb_push(sep)
-                sb_push(str_slice(s, start, n))
+                sb_push_slice(s, start, n)
                 sb_push("\n")
             }
             break
         }
         if nl > start {
-            sb_push(pad_int(lineno, width))
+            sb_push_i32_pad(lineno, width)
             sb_push(sep)
-            sb_push(str_slice(s, start, nl))
+            sb_push_slice(s, start, nl)
             sb_push("\n")
         }
         lineno = lineno + 1

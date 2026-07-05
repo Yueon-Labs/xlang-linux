@@ -37,7 +37,7 @@ fn emit(s: String, ls: i32, le: i32, c: i32, want_c: bool, want_d: bool, want_u:
             }
         } else {
             if want_c {
-                sb_push(pad_int(c, 7))
+                sb_push_i32_pad(c, 7)
                 sb_push(" ")
                 sb_push_slice(s, ls, le)
                 sb_push("\n")
