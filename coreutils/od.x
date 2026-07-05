@@ -43,6 +43,25 @@ fn hex_str(val: i32, width: i32): String {
     return str_concat(result, buf)
 }
 
+fn dec_str(val: i32, width: i32): String {
+    let digits: String = "0123456789"
+    let mut buf: String = ""
+    let mut v: i32 = val
+    if v == 0 { buf = "0" }
+    while v > 0 {
+        buf = str_concat(str_slice(digits, v % 10, (v % 10) + 1), buf)
+        v = v / 10
+    }
+    let mut result: String = ""
+    let pad: i32 = width - str_len(buf)
+    let mut pi: i32 = 0
+    while pi < pad {
+        result = str_concat(result, "0")
+        pi = pi + 1
+    }
+    return str_concat(result, buf)
+}
+
 fn main(): i32 {
     let mut addr_radix: String = "o"
     let mut out_type: String = "o1"
@@ -69,6 +88,12 @@ fn main(): i32 {
                         if i < argc() { out_type = argv(i) }
                     }
                 }
+                // Shorthand flags → -t equivalents (GNU od).
+                if c1 == 99 { out_type = "c" }
+                if c1 == 98 { out_type = "o1" }
+                if c1 == 100 { out_type = "d1" }
+                if c1 == 111 { out_type = "o1" }
+                if c1 == 120 { out_type = "x1" }
                 i = i + 1
             } else {
                 file = a
@@ -88,15 +113,14 @@ fn main(): i32 {
         if actual_end > n { actual_end = n }
         if str_eq(addr_radix, "n") == 0 {
             if str_eq(addr_radix, "d") {
-                print_raw(int_to_str(pos))
+                print_raw(dec_str(pos, 7))
             } else {
                 if str_eq(addr_radix, "x") {
-                    print_raw(hex_str(pos, 7))
+                    print_raw(hex_str(pos, 6))
                 } else {
                     print_raw(oct_str(pos, 7))
                 }
             }
-            print_raw(" ")
         }
         let mut k: i32 = pos
         while k < actual_end {
@@ -124,19 +148,18 @@ fn main(): i32 {
                     if str_eq(out_type, "c") {
                         if b >= 32 {
                             if b <= 126 {
-                                print_raw("  ")
+                                print_raw("   ")
                                 print_raw(chr(b))
                             } else {
-                                print_raw("  .")
+                                print_raw("   .")
                             }
                         } else {
-                            if b == 10 { print_raw(" \\n") }
+                            if b == 10 { print_raw("  \\n") }
                             else {
-                                if b == 9 { print_raw(" \\t") }
-                                else { print_raw("  .") }
+                                if b == 9 { print_raw("  \\t") }
+                                else { print_raw("   .") }
                             }
                         }
-                        print_raw(" ")
                     } else {
                         print_raw(" ")
                         print_raw(oct_str(b, 3))
@@ -147,6 +170,19 @@ fn main(): i32 {
         }
         print_raw("\n")
         pos = pos + 16
+    }
+    // Final offset line (total bytes), unless -An.
+    if str_eq(addr_radix, "n") == 0 {
+        if str_eq(addr_radix, "d") {
+            print_raw(dec_str(n, 7))
+        } else {
+            if str_eq(addr_radix, "x") {
+                print_raw(hex_str(n, 6))
+            } else {
+                print_raw(oct_str(n, 7))
+            }
+        }
+        print_raw("\n")
     }
     return 0
 }
