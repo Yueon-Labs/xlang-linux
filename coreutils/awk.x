@@ -274,22 +274,27 @@ fn main(): i32 {
         }
     }
 
+    // Buffer the whole BEGIN/body/END output in one StringBuilder, then a
+    // single write — print-actions emit one print_raw per item/line, which on
+    // large input is a syscall storm. Output is ~proportional to input.
+    sb_new()
+
     // Execute BEGIN block (lineno=0, no line data).
     if vec_len(begin_items) > 0 {
         let empty_fields: Vec<String> = vec_new()
         let ic: i32 = vec_len(begin_items)
         let mut j: i32 = 0
         while j < ic {
-            if j > 0 { print_raw(" ") }
-            print_raw(eval_item(begin_items[j], "", empty_fields, 0, 0))
+            if j > 0 { sb_push(" ") }
+            sb_push(eval_item(begin_items[j], "", empty_fields, 0, 0))
             j = j + 1
         }
-        print_raw("\n")
+        sb_push("\n")
     } else {
         if str_len(begin_action) > 0 {
             if str_find(begin_action, "print") != 0 {
-                print_raw(begin_action)
-                print_raw("\n")
+                sb_push(begin_action)
+                sb_push("\n")
             }
         }
     }
@@ -323,18 +328,18 @@ fn main(): i32 {
             let nf: i32 = vec_len(fields)
             let ic: i32 = vec_len(items)
             if ic == 0 {
-                print_raw(line)
-                print_raw("\n")
+                sb_push(line)
+                sb_push("\n")
             } else {
                 let mut j: i32 = 0
                 while j < ic {
                     if j > 0 {
-                        print_raw(" ")
+                        sb_push(" ")
                     }
-                    print_raw(eval_item(items[j], line, fields, lineno, nf))
+                    sb_push(eval_item(items[j], line, fields, lineno, nf))
                     j = j + 1
                 }
-                print_raw("\n")
+                sb_push("\n")
             }
         }
         start = p + 1
@@ -347,19 +352,20 @@ fn main(): i32 {
         let ic: i32 = vec_len(end_items)
         let mut j: i32 = 0
         while j < ic {
-            if j > 0 { print_raw(" ") }
-            print_raw(eval_item(end_items[j], "", empty_fields, lineno, 0))
+            if j > 0 { sb_push(" ") }
+            sb_push(eval_item(end_items[j], "", empty_fields, lineno, 0))
             j = j + 1
         }
-        print_raw("\n")
+        sb_push("\n")
     } else {
         if str_len(end_action) > 0 {
             if str_find(end_action, "print") != 0 {
-                print_raw(end_action)
-                print_raw("\n")
+                sb_push(end_action)
+                sb_push("\n")
             }
         }
     }
 
+    print_raw(sb_str())
     return 0
 }
