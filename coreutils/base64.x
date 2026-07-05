@@ -16,18 +16,31 @@ fn b64_val(c: i32): i32 {
 
 fn main(): i32 {
     let mut decode: bool = false
+    let mut wrap: i32 = 76
     let mut file: String = ""
     let mut i: i32 = 1
     while i < argc() {
         let a: String = argv(i)
         if str_eq(a, "-d") {
             decode = true
+            i = i + 1
         } else {
-            if str_char_at(a, 0) != 45 {
-                file = a
+            if str_eq(a, "-w") {
+                i = i + 1
+                if i < argc() { wrap = str_to_int(argv(i)) }
+                i = i + 1
+            } else {
+                if str_starts_with(a, "-w") {
+                    wrap = str_to_int(str_slice(a, 2, str_len(a)))
+                    i = i + 1
+                } else {
+                    if str_char_at(a, 0) != 45 {
+                        file = a
+                    }
+                    i = i + 1
+                }
             }
         }
-        i = i + 1
     }
     let s: String = if str_len(file) > 0 { read_file(file) } else { read_stdin() }
     let n: i32 = str_len(s)
@@ -95,8 +108,25 @@ fn main(): i32 {
     if decode {
         print_raw(sb_str())
     } else {
-        print_raw(sb_str())
-        print_raw("\n")
+        // Encode wraps at `wrap` columns (default 76); -w0 disables wrapping.
+        // Copy the encoded buffer (sb_str points into it) before reusing sb.
+        let enc: String = str_slice(sb_str(), 0, str_len(sb_str()))
+        if wrap <= 0 {
+            print_raw(enc)
+            print_raw("\n")
+        } else {
+            sb_new()
+            let en: i32 = str_len(enc)
+            let mut p: i32 = 0
+            while p < en {
+                let mut e: i32 = p + wrap
+                if e > en { e = en }
+                sb_push_slice(enc, p, e)
+                sb_push("\n")
+                p = e
+            }
+            print_raw(sb_str())
+        }
     }
     return 0
 }
