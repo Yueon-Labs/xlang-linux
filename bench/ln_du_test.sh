@@ -30,12 +30,27 @@ else
 fi
 
 echo "== du"
-out=$(/tmp/xdu "$ROOT" 2>/dev/null | awk '{print $1}')
-if [ "$out" -ge 10 ]; then
-    echo "  ok   du totals bytes ($out)"; PASS=$((PASS+1))
+# du defaults to 1K-blocks (disk usage via st_blocks); compare vs GNU on a
+# fresh tree (no hard links — GNU dedups hard-linked inodes, xlang does not).
+DUROOT="$(mktemp -d)"
+mkdir -p "$DUROOT/sub/deep"
+echo hi > "$DUROOT/a.txt"; echo yo > "$DUROOT/b.txt"
+echo z > "$DUROOT/sub/c.txt"; echo w > "$DUROOT/sub/deep/d.txt"
+xa=$(/tmp/xdu -s "$DUROOT" 2>/dev/null | awk '{print $1}')
+ga=$(du -s "$DUROOT" 2>/dev/null | awk '{print $1}')
+if [ "$xa" = "$ga" ]; then
+    echo "  ok   du -s matches GNU ($xa 1K-blocks)"; PASS=$((PASS+1))
 else
-    echo "  FAIL du (got $out, expected $expected)"; FAIL=$((FAIL+1))
+    echo "  FAIL du -s (x=$xa g=$ga)"; FAIL=$((FAIL+1))
 fi
+xb=$(/tmp/xdu -sb "$DUROOT" 2>/dev/null | awk '{print $1}')
+gb=$(du -sb "$DUROOT" 2>/dev/null | awk '{print $1}')
+if [ "$xb" = "$gb" ]; then
+    echo "  ok   du -sb matches GNU ($xb bytes)"; PASS=$((PASS+1))
+else
+    echo "  FAIL du -sb (x=$xb g=$gb)"; FAIL=$((FAIL+1))
+fi
+rm -rf "$DUROOT"
 
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
