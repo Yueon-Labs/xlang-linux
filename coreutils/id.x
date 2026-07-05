@@ -113,17 +113,43 @@ fn main(): i32 {
     let mut uid: i32 = getuid()
     let mut gid: i32 = getgid()
     let mut username: String = ""
+    let mut want_u: i32 = 0
+    let mut want_g: i32 = 0
+    let mut want_G: i32 = 0
+    let mut want_n: i32 = 0
+    let mut name_arg: String = ""
 
-    if argc() >= 2 {
-        let arg: String = argv(1)
-        let u: i32 = lookup_uid_by_name(arg)
+    let mut ai: i32 = 1
+    while ai < argc() {
+        let a: String = argv(ai)
+        if str_char_at(a, 0) == 45 {
+            let la: i32 = str_len(a)
+            let mut j: i32 = 1
+            while j < la {
+                let c: i32 = str_char_at(a, j)
+                if c == 117 { want_u = 1 }
+                if c == 103 { want_g = 1 }
+                if c == 71 { want_G = 1 }
+                if c == 110 { want_n = 1 }
+                if c == 114 { want_u = 0 }
+                if c == 122 { want_u = 0 }
+                j = j + 1
+            }
+        } else {
+            name_arg = a
+        }
+        ai = ai + 1
+    }
+
+    if str_len(name_arg) > 0 {
+        let u: i32 = lookup_uid_by_name(name_arg)
         if u >= 0 {
             uid = u
-            username = arg
-            let g: i32 = lookup_gid_by_name(arg)
+            username = name_arg
+            let g: i32 = lookup_gid_by_name(name_arg)
             if g >= 0 { gid = g }
         } else {
-            uid = parse_id(arg)
+            uid = parse_id(name_arg)
             if uid < 0 { uid = getuid() }
         }
     }
@@ -132,6 +158,72 @@ fn main(): i32 {
         username = lookup_name_by_uid(uid)
     }
 
+    // Resolve the user's group list once (used by -G, -gn, and default).
+    // GNU includes the primary gid first, then supplementary groups.
+    let gids: Vec<i32> = vec_new()
+    let gnames: Vec<String> = vec_new()
+    gids.push(gid)
+    gnames.push(lookup_group_name(gid))
+    let gr: String = read_file("/etc/group")
+    let glines: Vec<String> = str_split(str_trim(gr), "\n")
+    let gn: i32 = vec_len(glines)
+    let mut gi: i32 = 0
+    while gi < gn {
+        let gparts: Vec<String> = split_on(glines[gi], 58)
+        if vec_len(gparts) >= 4 {
+            let g_gid: i32 = parse_id(gparts[2])
+            let members: String = gparts[3]
+            let in_members: bool = str_find(members, username) >= 0
+            if in_members {
+                if g_gid != gid {
+                    gids.push(g_gid)
+                    gnames.push(gparts[0])
+                }
+            }
+        }
+        gi = gi + 1
+    }
+
+    // -u: print only the uid (or username with -n).
+    if want_u == 1 {
+        if want_n == 1 {
+            print_raw(username)
+        } else {
+            print_raw(int_to_str(uid))
+        }
+        print_raw("\n")
+        return 0
+    }
+    // -g: print only the primary gid (or group name with -n).
+    if want_g == 1 {
+        if want_n == 1 {
+            print_raw(lookup_group_name(gid))
+        } else {
+            print_raw(int_to_str(gid))
+        }
+        print_raw("\n")
+        return 0
+    }
+    // -G: print all gids (or group names with -n), space-separated.
+    if want_G == 1 {
+        let cnt: i32 = vec_len(gids)
+        let mut k: i32 = 0
+        sb_new()
+        while k < cnt {
+            if k > 0 { sb_push(" ") }
+            if want_n == 1 {
+                sb_push(gnames[k])
+            } else {
+                sb_push_i32(gids[k])
+            }
+            k = k + 1
+        }
+        sb_push("\n")
+        print_raw(sb_str())
+        return 0
+    }
+
+    // Default: full id line.
     sb_new()
     sb_push("uid=")
     sb_push_i32(uid)
@@ -148,35 +240,19 @@ fn main(): i32 {
         sb_push(gname)
         sb_push(")")
     }
-
-    let gr: String = read_file("/etc/group")
-    let glines: Vec<String> = str_split(str_trim(gr), "\n")
-    let gn: i32 = vec_len(glines)
-    let mut found_groups: i32 = 0
-    let mut gi: i32 = 0
-    while gi < gn {
-        let gparts: Vec<String> = split_on(glines[gi], 58)
-        if vec_len(gparts) >= 4 {
-            let g_gid: i32 = parse_id(gparts[2])
-            let members: String = gparts[3]
-            let in_members: bool = str_find(members, username) >= 0
-            let is_primary: bool = g_gid == gid
-            if in_members || is_primary {
-                if g_gid != gid || in_members {
-                    if found_groups == 0 {
-                        sb_push(" groups=")
-                    } else {
-                        sb_push(",")
-                    }
-                    sb_push_i32(g_gid)
-                    sb_push("(")
-                    sb_push(gparts[0])
-                    sb_push(")")
-                    found_groups = found_groups + 1
-                }
-            }
+    let cnt: i32 = vec_len(gids)
+    let mut k: i32 = 0
+    while k < cnt {
+        if k == 0 {
+            sb_push(" groups=")
+        } else {
+            sb_push(",")
         }
-        gi = gi + 1
+        sb_push_i32(gids[k])
+        sb_push("(")
+        sb_push(gnames[k])
+        sb_push(")")
+        k = k + 1
     }
     sb_push("\n")
     print_raw(sb_str())
