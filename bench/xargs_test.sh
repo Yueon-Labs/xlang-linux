@@ -23,6 +23,9 @@ cmp_gnu "basic"        $'a\nb\nc\n'   echo
 cmp_gnu "initial args" $'1\n2\n'      echo X Y
 cmp_gnu "spaces"       $'a b\nc d\n'  echo
 cmp_gnu "empty stdin"  ''             echo default
+cmp_gnu "-n1"          $'a b c\n'     -n1 echo
+cmp_gnu "-n2"          $'a b c d\n'   -n2 echo
+cmp_gnu "-n1 multiline" $'a\nb\nc\n'  -n1 echo
 
 echo
 echo "RESULT: pass=$PASS fail=$FAIL"
